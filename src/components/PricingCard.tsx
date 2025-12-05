@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles, DollarSign } from "lucide-react";
+import { Check, Sparkles, Loader2 } from "lucide-react";
 
 interface PricingCardProps {
   onUpgrade: () => void;
+  isLoading?: boolean;
+  isSubscribed?: boolean;
 }
 
-export function PricingCard({ onUpgrade }: PricingCardProps) {
+export function PricingCard({ onUpgrade, isLoading, isSubscribed }: PricingCardProps) {
   const features = [
     "Unlimited conversations",
     "All story modes unlocked",
@@ -16,7 +18,7 @@ export function PricingCard({ onUpgrade }: PricingCardProps) {
   ];
 
   return (
-    <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+    <div className="bg-card rounded-2xl shadow-card overflow-hidden border-2 border-primary">
       <div className="gradient-primary p-6 text-center">
         <Sparkles className="w-10 h-10 text-primary-foreground mx-auto mb-3" />
         <h3 className="font-display text-2xl font-bold text-primary-foreground">
@@ -30,10 +32,10 @@ export function PricingCard({ onUpgrade }: PricingCardProps) {
       <div className="p-6">
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-1">
-            <DollarSign className="w-8 h-8 text-success" />
-            <span className="text-5xl font-display font-bold">5</span>
+            <span className="text-2xl text-muted-foreground">$</span>
+            <span className="text-5xl font-display font-bold">4.99</span>
           </div>
-          <p className="text-muted-foreground text-sm">one-time payment</p>
+          <p className="text-muted-foreground text-sm">per month</p>
         </div>
 
         <ul className="space-y-3 mb-6">
@@ -47,20 +49,31 @@ export function PricingCard({ onUpgrade }: PricingCardProps) {
           ))}
         </ul>
 
-        <Button onClick={onUpgrade} size="lg" className="w-full">
-          Upgrade Now
-        </Button>
-
-        <div className="mt-4 p-4 bg-muted rounded-xl">
-          <p className="text-sm text-center">
-            <span className="font-bold">Pay via CashApp:</span>
-            <br />
-            <span className="text-primary font-mono">$mycashdirect2022</span>
-          </p>
-        </div>
+        {isSubscribed ? (
+          <Button disabled size="lg" className="w-full" variant="secondary">
+            <Check className="w-4 h-4 mr-2" />
+            Currently Subscribed
+          </Button>
+        ) : (
+          <Button 
+            onClick={onUpgrade} 
+            size="lg" 
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Subscribe Now'
+            )}
+          </Button>
+        )}
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          After payment, send screenshot to verify and unlock premium features.
+          Secure payment powered by Stripe. Cancel anytime.
         </p>
       </div>
     </div>
