@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { OwlCharacter } from "@/components/OwlCharacter";
 import { LanguageSelector } from "@/components/LanguageSelector";
-import { AuthButtons } from "@/components/AuthButtons";
+import { UserButton } from "@/components/UserButton";
 import { useLearningStore } from "@/stores/learningStore";
 import { Language } from "@/types/learning";
 import { useToast } from "@/hooks/use-toast";
@@ -39,13 +39,6 @@ const Index = () => {
     }
   };
 
-  const handleAuth = (provider: string) => {
-    toast({
-      title: "Authentication",
-      description: `${provider} sign-in requires Clerk integration. Set up your Clerk API key to enable.`,
-    });
-  };
-
   return (
     <div className="min-h-screen gradient-hero">
       <div className="container mx-auto px-4 py-8">
@@ -64,9 +57,7 @@ const Index = () => {
                 Continue Learning
               </Button>
             )}
-            <Button onClick={() => navigate("/auth")} variant="ghost">
-              Sign In
-            </Button>
+            <UserButton />
           </div>
         </header>
 
@@ -143,8 +134,13 @@ const Index = () => {
               </Button>
             </div>
 
-            <div className="mt-12 bg-card rounded-2xl p-6 shadow-card">
-              <AuthButtons onAuth={handleAuth} />
+            <div className="mt-12 bg-card rounded-2xl p-6 shadow-card text-center">
+              <p className="text-sm text-muted-foreground mb-4">
+                Sign in to save your progress across devices
+              </p>
+              <Button onClick={() => navigate("/auth")} variant="outline">
+                Sign In / Sign Up
+              </Button>
             </div>
           </div>
         )}
