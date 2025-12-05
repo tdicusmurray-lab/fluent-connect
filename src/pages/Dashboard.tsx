@@ -5,7 +5,7 @@ import { StoryModeCard } from "@/components/StoryModeCard";
 import { ConversationInterface } from "@/components/ConversationInterface";
 import { VocabularyList } from "@/components/VocabularyList";
 import { LearningPathway } from "@/components/LearningPathway";
-import { PricingCard } from "@/components/PricingCard";
+import { PremiumTab } from "@/components/PremiumTab";
 import { OwlCharacter } from "@/components/OwlCharacter";
 import { useLearningStore } from "@/stores/learningStore";
 import { storyModes } from "@/data/storyModes";
@@ -222,16 +222,11 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'premium' && (
-            <div className="max-w-md mx-auto">
-              <div className="mb-6 text-center">
-                <h2 className="font-display text-2xl font-bold mb-2">Upgrade to Premium</h2>
-                <p className="text-muted-foreground">
-                  You've used {progress.messagesUsed} of your {progress.messagesLimit} free messages.
-                </p>
-              </div>
-              
-              <PricingCard onUpgrade={createCheckout} />
-            </div>
+            <PremiumTab 
+              progress={progress} 
+              createCheckout={createCheckout}
+              targetLanguage={targetLanguage}
+            />
           )}
         </div>
       </main>
