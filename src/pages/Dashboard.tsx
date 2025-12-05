@@ -10,7 +10,7 @@ import { OwlCharacter } from "@/components/OwlCharacter";
 import { useLearningStore } from "@/stores/learningStore";
 import { storyModes } from "@/data/storyModes";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 import { 
   MessageCircle, 
   BookOpen, 
@@ -27,8 +27,8 @@ type Tab = 'learn' | 'stories' | 'vocabulary' | 'pathway' | 'premium';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { targetLanguage, setStoryMode, clearMessages, progress, upgradeToPremium } = useLearningStore();
+  const { createCheckout } = useSubscription();
+  const { targetLanguage, setStoryMode, clearMessages, progress } = useLearningStore();
   const [activeTab, setActiveTab] = useState<Tab>('learn');
   const [isInConversation, setIsInConversation] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -46,13 +46,6 @@ export default function Dashboard() {
     }
     clearMessages();
     setIsInConversation(true);
-  };
-
-  const handleUpgrade = () => {
-    toast({
-      title: "Payment Instructions",
-      description: "Send $5 to $mycashdirect2022 on CashApp, then send a screenshot to verify.",
-    });
   };
 
   if (isInConversation) {
@@ -237,7 +230,7 @@ export default function Dashboard() {
                 </p>
               </div>
               
-              <PricingCard onUpgrade={handleUpgrade} />
+              <PricingCard onUpgrade={createCheckout} />
             </div>
           )}
         </div>
