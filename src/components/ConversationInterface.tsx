@@ -2,10 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "./ChatMessage";
 import { OwlCharacter } from "./OwlCharacter";
+import { VoiceVisualizer } from "./VoiceVisualizer";
 import { useLearningStore } from "@/stores/learningStore";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { storyModes } from "@/data/storyModes";
 import { Message, WordInContext } from "@/types/learning";
-import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff } from "lucide-react";
+import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ConversationInterfaceProps {
@@ -37,33 +40,88 @@ const mockResponses: Record<string, { text: string; translation: string; words: 
         { word: "tiene", translation: "have/has", pronunciation: "TYEH-neh", partOfSpeech: "verb", isKnown: false, isNew: true },
         { word: "menú", translation: "menu", pronunciation: "meh-NOO", partOfSpeech: "noun", isKnown: true, isNew: false },
       ]
+    },
+    {
+      text: "¿Qué le gustaría beber? Tenemos agua, vino, y cerveza.",
+      translation: "What would you like to drink? We have water, wine, and beer.",
+      words: [
+        { word: "gustaría", translation: "would like", pronunciation: "goos-tah-REE-ah", partOfSpeech: "verb", isKnown: false, isNew: true },
+        { word: "beber", translation: "to drink", pronunciation: "beh-BEHR", partOfSpeech: "verb", isKnown: false, isNew: true },
+        { word: "Tenemos", translation: "We have", pronunciation: "teh-NEH-mos", partOfSpeech: "verb", isKnown: false, isNew: false },
+        { word: "agua", translation: "water", pronunciation: "AH-gwah", partOfSpeech: "noun", isKnown: true, isNew: false },
+        { word: "vino", translation: "wine", pronunciation: "BEE-noh", partOfSpeech: "noun", isKnown: false, isNew: true },
+        { word: "cerveza", translation: "beer", pronunciation: "sehr-BEH-sah", partOfSpeech: "noun", isKnown: false, isNew: true },
+      ]
     }
   ],
   default: [
     {
-      text: "¡Hola! ¿Cómo estás hoy?",
-      translation: "Hello! How are you today?",
+      text: "¡Hola! ¿Cómo estás hoy? Me alegro de verte.",
+      translation: "Hello! How are you today? I'm glad to see you.",
       words: [
         { word: "Hola", translation: "Hello", pronunciation: "OH-lah", partOfSpeech: "interjection", isKnown: true, isNew: false },
         { word: "Cómo", translation: "How", pronunciation: "KOH-moh", partOfSpeech: "adverb", isKnown: false, isNew: true },
         { word: "estás", translation: "are you", pronunciation: "es-TAHS", partOfSpeech: "verb", isKnown: false, isNew: false },
         { word: "hoy", translation: "today", pronunciation: "oy", partOfSpeech: "adverb", isKnown: false, isNew: true },
+        { word: "alegro", translation: "glad", pronunciation: "ah-LEH-groh", partOfSpeech: "verb", isKnown: false, isNew: true },
+        { word: "verte", translation: "to see you", pronunciation: "BEHR-teh", partOfSpeech: "verb", isKnown: false, isNew: true },
+      ]
+    },
+    {
+      text: "¡Qué bien! ¿Qué te gustaría practicar hoy?",
+      translation: "Great! What would you like to practice today?",
+      words: [
+        { word: "Qué", translation: "What/How", pronunciation: "keh", partOfSpeech: "pronoun", isKnown: true, isNew: false },
+        { word: "bien", translation: "good/well", pronunciation: "byen", partOfSpeech: "adverb", isKnown: true, isNew: false },
+        { word: "gustaría", translation: "would like", pronunciation: "goos-tah-REE-ah", partOfSpeech: "verb", isKnown: false, isNew: false },
+        { word: "practicar", translation: "to practice", pronunciation: "prahk-tee-KAHR", partOfSpeech: "verb", isKnown: false, isNew: true },
       ]
     }
   ]
 };
 
 export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
-  const { messages, addMessage, currentStoryMode, useMessage, progress, addXp } = useLearningStore();
+  const { messages, addMessage, currentStoryMode, useMessage, progress, addXp, targetLanguage } = useLearningStore();
   const [inputText, setInputText] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
+  const [interimText, setInterimText] = useState("");
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [responseIndex, setResponseIndex] = useState(0);
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
+
+  // Speech recognition hook
+  const {
+    isListening,
+    isSupported: speechRecognitionSupported,
+    toggleListening,
+    stopListening,
+  } = useSpeechRecognition({
+    onResult: (transcript) => {
+      setInputText(prev => prev + (prev ? ' ' : '') + transcript);
+      setInterimText("");
+    },
+    onInterimResult: (transcript) => {
+      setInterimText(transcript);
+    },
+    continuous: true,
+    language: 'en-US',
+  });
+
+  // Speech synthesis hook
+  const {
+    speak,
+    stop: stopSpeaking,
+    isSpeaking: isSynthesizing,
+    isSupported: speechSynthesisSupported,
+  } = useSpeechSynthesis({
+    lang: targetLanguage?.code || 'es',
+    onStart: () => setIsSpeaking(true),
+    onEnd: () => setIsSpeaking(false),
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -86,13 +144,24 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
           words: response.words,
           timestamp: new Date(),
         });
-        setTimeout(() => setIsSpeaking(false), 2000);
+        
+        if (autoSpeak && speechSynthesisSupported) {
+          speak(response.text);
+        } else {
+          setTimeout(() => setIsSpeaking(false), 2000);
+        }
       }, 1000);
     }
   }, []);
 
   const handleSend = () => {
-    if (!inputText.trim()) return;
+    const textToSend = inputText.trim();
+    if (!textToSend) return;
+
+    // Stop listening if active
+    if (isListening) {
+      stopListening();
+    }
 
     if (!useMessage()) {
       toast({
@@ -107,11 +176,12 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     addMessage({
       id: Date.now().toString(),
       role: 'user',
-      content: inputText,
+      content: textToSend,
       timestamp: new Date(),
     });
 
     setInputText("");
+    setInterimText("");
     addXp(5);
 
     // Simulate AI response
@@ -133,18 +203,32 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
       
       setResponseIndex(nextIndex);
       addXp(10);
-      setTimeout(() => setIsSpeaking(false), 2000);
+      
+      if (autoSpeak && speechSynthesisSupported) {
+        speak(response.text);
+      } else {
+        setTimeout(() => setIsSpeaking(false), 2000);
+      }
     }, 1500);
   };
 
-  const toggleRecording = () => {
-    if (!isRecording) {
+  const handleMicClick = () => {
+    if (!speechRecognitionSupported) {
       toast({
-        title: "Voice recording",
-        description: "Speak in English - I'll respond in your target language!",
+        title: "Not supported",
+        description: "Speech recognition is not supported in your browser. Try Chrome or Edge.",
+        variant: "destructive",
       });
+      return;
     }
-    setIsRecording(!isRecording);
+    toggleListening();
+  };
+
+  const toggleAutoSpeak = () => {
+    if (isSynthesizing) {
+      stopSpeaking();
+    }
+    setAutoSpeak(!autoSpeak);
   };
 
   const messagesRemaining = progress.messagesLimit - progress.messagesUsed;
@@ -162,11 +246,19 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
               {currentStory ? currentStory.title : "Free Conversation"}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {messagesRemaining} messages remaining
+              {messagesRemaining} messages remaining • {targetLanguage?.flag} {targetLanguage?.name}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant={autoSpeak ? "default" : "muted"}
+            size="icon"
+            onClick={toggleAutoSpeak}
+            title={autoSpeak ? "Auto-speak enabled" : "Auto-speak disabled"}
+          >
+            {autoSpeak ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </Button>
           <Button
             variant={isVideoOn ? "default" : "muted"}
             size="icon"
@@ -199,17 +291,39 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
 
           {/* Input area */}
           <div className="border-t border-border p-4 bg-card">
+            {/* Interim transcription display */}
+            {(isListening || interimText) && (
+              <div className="mb-3 p-3 bg-muted rounded-xl flex items-center gap-3">
+                <VoiceVisualizer isActive={isListening} />
+                <div className="flex-1">
+                  {isListening && (
+                    <p className="text-xs text-muted-foreground mb-1">Listening...</p>
+                  )}
+                  <p className="text-sm">
+                    {inputText && <span>{inputText} </span>}
+                    {interimText && <span className="text-muted-foreground">{interimText}</span>}
+                    {!inputText && !interimText && isListening && (
+                      <span className="text-muted-foreground">Speak in English...</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               <Button
-                variant={isRecording ? "destructive" : "outline"}
+                variant={isListening ? "destructive" : "outline"}
                 size="icon"
-                onClick={toggleRecording}
-                className="shrink-0"
+                onClick={handleMicClick}
+                className={`shrink-0 relative ${isListening ? 'animate-pulse' : ''}`}
               >
-                {isRecording ? (
+                {isListening ? (
                   <MicOff className="w-5 h-5" />
                 ) : (
                   <Mic className="w-5 h-5" />
+                )}
+                {isListening && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full animate-ping" />
                 )}
               </Button>
               
@@ -218,7 +332,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Type in English..."
+                placeholder="Type or speak in English..."
                 className="flex-1 bg-muted rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
               />
               
@@ -226,6 +340,12 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
                 <Send className="w-5 h-5" />
               </Button>
             </div>
+
+            {!speechRecognitionSupported && (
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Voice input requires Chrome, Edge, or Safari
+              </p>
+            )}
           </div>
         </div>
 
@@ -234,12 +354,18 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
           <div className="w-80 border-l border-border bg-card hidden lg:block">
             <div className="h-full flex flex-col">
               <div className="flex-1 bg-muted/50">
-                <OwlCharacter isSpeaking={isSpeaking} />
+                <OwlCharacter isSpeaking={isSpeaking || isSynthesizing} />
               </div>
               <div className="p-4 border-t border-border">
                 <h3 className="font-display font-bold text-sm mb-2">Lingo</h3>
                 <p className="text-xs text-muted-foreground">
-                  Your AI language companion. Hover over words for translations!
+                  {isSynthesizing ? (
+                    <span className="text-primary">🔊 Speaking...</span>
+                  ) : isListening ? (
+                    <span className="text-destructive">🎤 Listening to you...</span>
+                  ) : (
+                    "Click the mic to speak, or type. Hover over words for translations!"
+                  )}
                 </p>
               </div>
             </div>
