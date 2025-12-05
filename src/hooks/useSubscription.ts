@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useLearningStore } from '@/stores/learningStore';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -11,7 +13,9 @@ interface SubscriptionStatus {
 }
 
 export function useSubscription() {
-  const { user, isLoaded } = useUser();
+  const { user, isSignedIn } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [status, setStatus] = useState<SubscriptionStatus>({
     subscribed: false,
     productId: null,
@@ -23,7 +27,7 @@ export function useSubscription() {
   const upgradeToPremium = useLearningStore(state => state.upgradeToPremium);
 
   const checkSubscription = useCallback(async () => {
-    if (!user?.primaryEmailAddress?.emailAddress) {
+    if (!user?.email) {
       return;
     }
 
@@ -32,7 +36,7 @@ export function useSubscription() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('check-subscription', {
-        body: { email: user.primaryEmailAddress.emailAddress }
+        body: { email: user.email }
       });
 
       if (fnError) {
@@ -64,10 +68,10 @@ export function useSubscription() {
 
   // Check on mount and when user changes
   useEffect(() => {
-    if (isLoaded && user) {
+    if (isSignedIn && user) {
       checkSubscription();
     }
-  }, [isLoaded, user, checkSubscription]);
+  }, [isSignedIn, user, checkSubscription]);
 
   // Check on URL params (after payment redirect)
   useEffect(() => {
@@ -81,8 +85,13 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const createCheckout = async () => {
-    if (!user?.primaryEmailAddress?.emailAddress) {
-      throw new Error('Please sign in to subscribe');
+    if (!isSignedIn || !user?.email) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to subscribe.",
+      });
+      navigate('/auth');
+      return;
     }
 
     setIsLoading(true);
@@ -91,7 +100,7 @@ export function useSubscription() {
     try {
       const { data, error: fnError } = await supabase.functions.invoke('create-checkout', {
         body: { 
-          email: user.primaryEmailAddress.emailAddress,
+          email: user.email,
           userId: user.id 
         }
       });
@@ -110,7 +119,11 @@ export function useSubscription() {
     } catch (err: any) {
       console.error('Failed to create checkout:', err);
       setError(err.message);
-      throw err;
+      toast({
+        title: "Checkout failed",
+        description: err.message,
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
