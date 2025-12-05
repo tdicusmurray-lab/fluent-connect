@@ -62,7 +62,7 @@ const premiumFeatures = [
 ];
 
 export function PremiumTab({ progress, createCheckout, targetLanguage }: PremiumTabProps) {
-  const { subscribed, isLoading, subscriptionEnd } = useSubscription();
+  const { subscribed, isLoading, subscriptionEnd, openCustomerPortal } = useSubscription();
 
   if (subscribed) {
     return (
@@ -112,8 +112,17 @@ export function PremiumTab({ progress, createCheckout, targetLanguage }: Premium
             </div>
           )}
 
-          <Button variant="outline" className="w-full" onClick={() => window.open('mailto:support@lingolive.app')}>
-            <Settings className="w-4 h-4 mr-2" />
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={openCustomerPortal}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Settings className="w-4 h-4 mr-2" />
+            )}
             Manage Subscription
           </Button>
         </div>

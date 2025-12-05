@@ -27,7 +27,7 @@ export function useSubscription() {
   const upgradeToPremium = useLearningStore(state => state.upgradeToPremium);
 
   const checkSubscription = useCallback(async () => {
-    if (!user?.email) {
+    if (!isSignedIn || !user) {
       return;
     }
 
@@ -35,9 +35,8 @@ export function useSubscription() {
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('check-subscription', {
-        body: { email: user.email }
-      });
+      // No need to send email - the function extracts it from the JWT token
+      const { data, error: fnError } = await supabase.functions.invoke('check-subscription');
 
       if (fnError) {
         throw new Error(fnError.message);
@@ -64,7 +63,7 @@ export function useSubscription() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, upgradeToPremium]);
+  }, [isSignedIn, user, upgradeToPremium]);
 
   // Check on mount and when user changes
   useEffect(() => {
@@ -85,7 +84,7 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const createCheckout = async () => {
-    if (!isSignedIn || !user?.email) {
+    if (!isSignedIn || !user) {
       toast({
         title: "Sign in required",
         description: "Please sign in to subscribe.",
@@ -98,12 +97,8 @@ export function useSubscription() {
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          email: user.email,
-          userId: user.id 
-        }
-      });
+      // No need to send email/userId - the function extracts from JWT token
+      const { data, error: fnError } = await supabase.functions.invoke('create-checkout');
 
       if (fnError) {
         throw new Error(fnError.message);
@@ -129,11 +124,52 @@ export function useSubscription() {
     }
   };
 
+  const openCustomerPortal = async () => {
+    if (!isSignedIn || !user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to manage your subscription.",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('customer-portal');
+
+      if (fnError) {
+        throw new Error(fnError.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (err: any) {
+      console.error('Failed to open customer portal:', err);
+      setError(err.message);
+      toast({
+        title: "Failed to open subscription management",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     ...status,
     isLoading,
     error,
     checkSubscription,
     createCheckout,
+    openCustomerPortal,
   };
 }
