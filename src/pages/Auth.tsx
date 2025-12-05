@@ -1,22 +1,72 @@
-import { SignIn, SignUp, useAuth } from "@clerk/clerk-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Globe, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Globe, ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isSignedIn, isLoaded } = useAuth();
-  const [mode, setMode] = useState<'sign-in' | 'sign-up'>(
-    location.pathname.includes('sign-up') ? 'sign-up' : 'sign-in'
-  );
+  const { toast } = useToast();
+  const { isSignedIn, isLoading: authLoading, signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (!authLoading && isSignedIn) {
       navigate("/dashboard");
     }
-  }, [isLoaded, isSignedIn, navigate]);
+  }, [authLoading, isSignedIn, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      if (mode === 'sign-in') {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast({
+            title: "Sign in failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          navigate("/dashboard");
+        }
+      } else {
+        const { error } = await signUp(email, password);
+        if (error) {
+          toast({
+            title: "Sign up failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Account created!",
+            description: "You can now start learning.",
+          });
+          navigate("/dashboard");
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
@@ -47,7 +97,7 @@ export default function Auth() {
             </p>
           </div>
 
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-6">
             <div className="bg-muted rounded-xl p-1 flex">
               <button
                 onClick={() => setMode('sign-in')}
@@ -72,47 +122,53 @@ export default function Auth() {
             </div>
           </div>
 
-          <div className="flex justify-center [&_.cl-rootBox]:w-full [&_.cl-card]:shadow-none [&_.cl-card]:bg-transparent [&_.cl-headerTitle]:hidden [&_.cl-headerSubtitle]:hidden [&_.cl-socialButtonsBlockButton]:rounded-xl [&_.cl-formButtonPrimary]:gradient-primary [&_.cl-formButtonPrimary]:rounded-xl [&_.cl-footerActionLink]:text-primary">
-            {mode === 'sign-in' ? (
-              <SignIn 
-                routing="path" 
-                path="/sign-in"
-                signUpUrl="/sign-up"
-                afterSignInUrl="/dashboard"
-                appearance={{
-                  elements: {
-                    formButtonPrimary: 'bg-primary hover:bg-primary/90',
-                    socialButtonsBlockButton: 'border-border hover:bg-muted',
-                    formFieldInput: 'rounded-xl border-border focus:ring-primary',
-                    card: 'shadow-none',
-                  }
-                }}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="rounded-xl"
               />
-            ) : (
-              <SignUp 
-                routing="path" 
-                path="/sign-up"
-                signInUrl="/sign-in"
-                afterSignUpUrl="/dashboard"
-                appearance={{
-                  elements: {
-                    formButtonPrimary: 'bg-primary hover:bg-primary/90',
-                    socialButtonsBlockButton: 'border-border hover:bg-muted',
-                    formFieldInput: 'rounded-xl border-border focus:ring-primary',
-                    card: 'shadow-none',
-                  }
-                }}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="rounded-xl"
               />
-            )}
-          </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full rounded-xl"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              {mode === 'sign-up' ? 'Create Account' : 'Sign In'}
+            </Button>
+          </form>
         </div>
 
         <div className="mt-6 bg-success-light rounded-xl p-4 text-center">
           <p className="text-sm font-medium text-success">
-            ✓ Authentication Enabled
+            ✓ Secure Authentication
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Sign in with Google, GitHub, Facebook, Twitter, and more!
+            Your data is protected with industry-standard encryption
           </p>
         </div>
       </div>

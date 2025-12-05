@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { PricingCard } from "@/components/PricingCard";
 import { ArrowLeft, Check, Globe } from "lucide-react";
@@ -9,7 +9,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 export default function Pricing() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isSignedIn } = useUser();
+  const { isSignedIn } = useAuth();
   const { subscribed, isLoading, createCheckout } = useSubscription();
 
   const handleUpgrade = async () => {
