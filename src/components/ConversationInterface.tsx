@@ -15,7 +15,7 @@ interface ConversationInterfaceProps {
   onBack: () => void;
 }
 
-// Mock responses for demo - in production this would use AI
+// Mock responses for demo
 const mockResponses: Record<string, { text: string; translation: string; words: WordInContext[] }[]> = {
   restaurant: [
     {
@@ -83,7 +83,6 @@ const mockResponses: Record<string, { text: string; translation: string; words: 
 export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const { messages, addMessage, currentStoryMode, useMessage, progress, addXp, targetLanguage } = useLearningStore();
   const [inputText, setInputText] = useState("");
-  const [interimText, setInterimText] = useState("");
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -93,23 +92,17 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
 
-  // Speech recognition hook
+  // Speech recognition hook - simplified API
   const {
     isListening,
     isSupported: speechRecognitionSupported,
+    error: speechError,
+    transcript,
+    interimTranscript,
     toggleListening,
     stopListening,
-  } = useSpeechRecognition({
-    onResult: (transcript) => {
-      setInputText(prev => prev + (prev ? ' ' : '') + transcript);
-      setInterimText("");
-    },
-    onInterimResult: (transcript) => {
-      setInterimText(transcript);
-    },
-    continuous: true,
-    language: 'en-US',
-  });
+    resetTranscript,
+  } = useSpeechRecognition('en-US');
 
   // Speech synthesis hook
   const {
@@ -122,6 +115,26 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     onStart: () => setIsSpeaking(true),
     onEnd: () => setIsSpeaking(false),
   });
+
+  // Update input when transcript changes
+  useEffect(() => {
+    if (transcript) {
+      setInputText(transcript);
+    }
+  }, [transcript]);
+
+  // Show errors
+  useEffect(() => {
+    if (speechError) {
+      toast({
+        title: "Microphone Error",
+        description: speechError === 'not-allowed' 
+          ? "Microphone access denied. Please allow microphone permissions." 
+          : `Speech recognition error: ${speechError}`,
+        variant: "destructive",
+      });
+    }
+  }, [speechError, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -162,6 +175,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     if (isListening) {
       stopListening();
     }
+    resetTranscript();
 
     if (!useMessage()) {
       toast({
@@ -181,7 +195,6 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     });
 
     setInputText("");
-    setInterimText("");
     addXp(5);
 
     // Simulate AI response
@@ -221,6 +234,12 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
       });
       return;
     }
+    
+    if (!isListening) {
+      resetTranscript();
+      setInputText("");
+    }
+    
     toggleListening();
   };
 
@@ -232,6 +251,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   };
 
   const messagesRemaining = progress.messagesLimit - progress.messagesUsed;
+  const displayText = inputText || (isListening ? interimTranscript : '');
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -291,28 +311,29 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
 
           {/* Input area */}
           <div className="border-t border-border p-4 bg-card">
-            {/* Interim transcription display */}
-            {(isListening || interimText) && (
-              <div className="mb-3 p-3 bg-muted rounded-xl flex items-center gap-3">
+            {/* Listening indicator */}
+            {isListening && (
+              <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-xl flex items-center gap-3">
                 <VoiceVisualizer isActive={isListening} />
                 <div className="flex-1">
-                  {isListening && (
-                    <p className="text-xs text-muted-foreground mb-1">Listening...</p>
-                  )}
+                  <p className="text-xs text-destructive font-medium mb-1">🎤 Listening... Speak in English</p>
                   <p className="text-sm">
-                    {inputText && <span>{inputText} </span>}
-                    {interimText && <span className="text-muted-foreground">{interimText}</span>}
-                    {!inputText && !interimText && isListening && (
-                      <span className="text-muted-foreground">Speak in English...</span>
+                    {transcript && <span className="text-foreground">{transcript} </span>}
+                    {interimTranscript && <span className="text-muted-foreground italic">{interimTranscript}</span>}
+                    {!transcript && !interimTranscript && (
+                      <span className="text-muted-foreground">Say something...</span>
                     )}
                   </p>
                 </div>
+                <Button size="sm" variant="destructive" onClick={stopListening}>
+                  Stop
+                </Button>
               </div>
             )}
 
             <div className="flex items-center gap-3">
               <Button
-                variant={isListening ? "destructive" : "outline"}
+                variant={isListening ? "destructive" : "default"}
                 size="icon"
                 onClick={handleMicClick}
                 className={`shrink-0 relative ${isListening ? 'animate-pulse' : ''}`}
@@ -329,21 +350,21 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
               
               <input
                 type="text"
-                value={inputText}
+                value={displayText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Type or speak in English..."
+                placeholder="Type or click mic to speak..."
                 className="flex-1 bg-muted rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
               />
               
-              <Button onClick={handleSend} disabled={!inputText.trim()}>
+              <Button onClick={handleSend} disabled={!displayText.trim()}>
                 <Send className="w-5 h-5" />
               </Button>
             </div>
 
             {!speechRecognitionSupported && (
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Voice input requires Chrome, Edge, or Safari
+              <p className="text-xs text-warning mt-2 text-center">
+                ⚠️ Voice input requires Chrome, Edge, or Safari
               </p>
             )}
           </div>
