@@ -1,18 +1,37 @@
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { PricingCard } from "@/components/PricingCard";
 import { ArrowLeft, Check, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export default function Pricing() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isSignedIn } = useUser();
+  const { subscribed, isLoading, createCheckout } = useSubscription();
 
-  const handleUpgrade = () => {
-    toast({
-      title: "Payment Instructions",
-      description: "Send $5 to $mycashdirect2022 on CashApp, then send a screenshot to verify.",
-    });
+  const handleUpgrade = async () => {
+    if (!isSignedIn) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to subscribe to Premium.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      await createCheckout();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const freeFeatures = [
@@ -39,7 +58,7 @@ export default function Pricing() {
             <span className="font-display text-2xl font-bold text-gradient">LingoLive</span>
           </div>
 
-          <div className="w-20" /> {/* Spacer */}
+          <div className="w-20" />
         </header>
 
         {/* Pricing Content */}
@@ -92,7 +111,11 @@ export default function Pricing() {
             </div>
 
             {/* Premium Tier */}
-            <PricingCard onUpgrade={handleUpgrade} />
+            <PricingCard 
+              onUpgrade={handleUpgrade} 
+              isLoading={isLoading}
+              isSubscribed={subscribed}
+            />
           </div>
 
           {/* FAQ */}
@@ -105,11 +128,11 @@ export default function Pricing() {
               {[
                 {
                   q: "How does payment work?",
-                  a: "Send $5 to $mycashdirect2022 on CashApp. After payment, send us a screenshot to verify and unlock premium."
+                  a: "We use Stripe for secure payment processing. Your card is charged monthly and you can cancel anytime."
                 },
                 {
-                  q: "Is it a one-time payment?",
-                  a: "Yes! Pay once and get lifetime access to all premium features."
+                  q: "Can I cancel anytime?",
+                  a: "Yes! You can cancel your subscription at any time. You'll keep access until the end of your billing period."
                 },
                 {
                   q: "Can I try before I buy?",
