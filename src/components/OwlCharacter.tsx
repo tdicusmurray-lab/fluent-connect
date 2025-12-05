@@ -19,6 +19,14 @@ const scenarioBackgrounds: Record<string, {
   'job-interview': { skyColor: '#4682B4', groundColor: '#2F4F4F', ambientIntensity: 0.6, elements: 'office' },
   cafe: { skyColor: '#D2691E', groundColor: '#8B4513', ambientIntensity: 0.5, elements: 'cafe' },
   party: { skyColor: '#4B0082', groundColor: '#2E1A47', ambientIntensity: 0.3, elements: 'party' },
+  airport: { skyColor: '#B0C4DE', groundColor: '#696969', ambientIntensity: 0.8, elements: 'airport' },
+  beach: { skyColor: '#00CED1', groundColor: '#F4A460', ambientIntensity: 0.9, elements: 'beach' },
+  museum: { skyColor: '#2F2F2F', groundColor: '#1C1C1C', ambientIntensity: 0.4, elements: 'museum' },
+  gym: { skyColor: '#708090', groundColor: '#2F4F4F', ambientIntensity: 0.7, elements: 'gym' },
+  bank: { skyColor: '#4A5568', groundColor: '#2D3748', ambientIntensity: 0.6, elements: 'bank' },
+  library: { skyColor: '#8B7355', groundColor: '#5D4037', ambientIntensity: 0.4, elements: 'library' },
+  market: { skyColor: '#87CEEB', groundColor: '#CD853F', ambientIntensity: 0.8, elements: 'market' },
+  cinema: { skyColor: '#1A1A2E', groundColor: '#16213E', ambientIntensity: 0.2, elements: 'cinema' },
   free: { skyColor: '#87CEEB', groundColor: '#228B22', ambientIntensity: 0.7, elements: 'park' },
 };
 
@@ -253,6 +261,300 @@ function ScenarioElements({ type }: { type: string }) {
         </group>
       );
     
+    case 'airport':
+      return (
+        <group>
+          {/* Departure board */}
+          <mesh position={[-2.5, 0.5, -2]}>
+            <boxGeometry args={[1.5, 1, 0.1]} />
+            <meshStandardMaterial color="#1C1C1C" />
+          </mesh>
+          <mesh position={[-2.5, 0.5, -1.95]}>
+            <boxGeometry args={[1.3, 0.8, 0.05]} />
+            <meshStandardMaterial color="#0066CC" emissive="#0066CC" emissiveIntensity={0.3} />
+          </mesh>
+          {/* Luggage */}
+          <mesh position={[2.5, -1.6, -1]}>
+            <boxGeometry args={[0.5, 0.7, 0.3]} />
+            <meshStandardMaterial color="#2F4F4F" />
+          </mesh>
+          <mesh position={[2.8, -1.8, -1]}>
+            <boxGeometry args={[0.4, 0.4, 0.25]} />
+            <meshStandardMaterial color="#8B0000" />
+          </mesh>
+          {/* Airplane window view */}
+          <mesh position={[0, 1, -4]}>
+            <circleGeometry args={[0.8, 32]} />
+            <meshStandardMaterial color="#87CEEB" />
+          </mesh>
+          {/* Seats */}
+          {[-1.5, -0.5, 0.5].map((x, i) => (
+            <mesh key={i} position={[x, -1.5, -1.5]}>
+              <boxGeometry args={[0.4, 0.5, 0.4]} />
+              <meshStandardMaterial color="#4169E1" />
+            </mesh>
+          ))}
+        </group>
+      );
+
+    case 'beach':
+      return (
+        <group>
+          {/* Sun */}
+          <mesh position={[3, 2.5, -5]}>
+            <sphereGeometry args={[0.8, 32, 32]} />
+            <meshStandardMaterial color="#FFD700" emissive="#FFD700" emissiveIntensity={0.8} />
+          </mesh>
+          {/* Palm tree */}
+          <group position={[-3, -1, -2]}>
+            <mesh position={[0, 0.5, 0]}>
+              <cylinderGeometry args={[0.1, 0.15, 2, 8]} />
+              <meshStandardMaterial color="#8B4513" />
+            </mesh>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <mesh key={i} position={[Math.cos(i * 1.2) * 0.5, 1.5, Math.sin(i * 1.2) * 0.5]} rotation={[0.5, i * 1.2, 0]}>
+                <boxGeometry args={[0.1, 0.8, 0.02]} />
+                <meshStandardMaterial color="#228B22" />
+              </mesh>
+            ))}
+          </group>
+          {/* Beach umbrella */}
+          <mesh position={[2, -0.5, -1.5]} rotation={[0.2, 0, 0]}>
+            <coneGeometry args={[1, 0.5, 8]} />
+            <meshStandardMaterial color="#FF6347" />
+          </mesh>
+          <mesh position={[2, -1.3, -1.3]}>
+            <cylinderGeometry args={[0.05, 0.05, 1.5, 8]} />
+            <meshStandardMaterial color="#8B4513" />
+          </mesh>
+          {/* Beach ball */}
+          <mesh position={[-1, -1.8, -0.5]}>
+            <sphereGeometry args={[0.2, 16, 16]} />
+            <meshStandardMaterial color="#FF69B4" />
+          </mesh>
+          {/* Waves */}
+          <mesh position={[0, -2.1, 2]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[10, 3]} />
+            <meshStandardMaterial color="#00CED1" transparent opacity={0.7} />
+          </mesh>
+        </group>
+      );
+
+    case 'museum':
+      return (
+        <group>
+          {/* Paintings */}
+          {[
+            { pos: [-3, 0.3, -2.5], c: '#8B0000' },
+            { pos: [3, 0.5, -2.5], c: '#00008B' },
+            { pos: [0, 0.8, -3], c: '#FFD700' },
+          ].map((p, i) => (
+            <group key={i} position={[p.pos[0], p.pos[1], p.pos[2]]}>
+              <mesh>
+                <boxGeometry args={[0.8, 0.6, 0.05]} />
+                <meshStandardMaterial color="#8B4513" />
+              </mesh>
+              <mesh position={[0, 0, 0.03]}>
+                <boxGeometry args={[0.7, 0.5, 0.02]} />
+                <meshStandardMaterial color={p.c} />
+              </mesh>
+            </group>
+          ))}
+          {/* Sculpture pedestal */}
+          <mesh position={[0, -1.5, -1]}>
+            <boxGeometry args={[0.6, 0.8, 0.6]} />
+            <meshStandardMaterial color="#D3D3D3" />
+          </mesh>
+          <mesh position={[0, -0.8, -1]}>
+            <sphereGeometry args={[0.3, 32, 32]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={0.3} roughness={0.7} />
+          </mesh>
+          {/* Spot lights */}
+          <pointLight position={[-3, 1.5, -1]} intensity={0.5} color="#FFFACD" distance={3} />
+          <pointLight position={[3, 1.5, -1]} intensity={0.5} color="#FFFACD" distance={3} />
+        </group>
+      );
+
+    case 'gym':
+      return (
+        <group>
+          {/* Dumbbells */}
+          <group position={[-2.5, -1.8, -1]}>
+            <mesh rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.08, 0.08, 0.5, 16]} />
+              <meshStandardMaterial color="#1C1C1C" />
+            </mesh>
+            <mesh position={[-0.25, 0, 0]}>
+              <cylinderGeometry args={[0.12, 0.12, 0.15, 16]} />
+              <meshStandardMaterial color="#2F4F4F" />
+            </mesh>
+            <mesh position={[0.25, 0, 0]}>
+              <cylinderGeometry args={[0.12, 0.12, 0.15, 16]} />
+              <meshStandardMaterial color="#2F4F4F" />
+            </mesh>
+          </group>
+          {/* Treadmill */}
+          <mesh position={[2.5, -1.5, -1.5]}>
+            <boxGeometry args={[0.8, 0.2, 1.5]} />
+            <meshStandardMaterial color="#1C1C1C" />
+          </mesh>
+          <mesh position={[2.5, -0.8, -2]}>
+            <boxGeometry args={[0.6, 1.2, 0.1]} />
+            <meshStandardMaterial color="#2F4F4F" />
+          </mesh>
+          {/* Exercise ball */}
+          <mesh position={[-1, -1.5, -1]}>
+            <sphereGeometry args={[0.4, 32, 32]} />
+            <meshStandardMaterial color="#4169E1" />
+          </mesh>
+          {/* Mirror */}
+          <mesh position={[0, 0, -3]}>
+            <planeGeometry args={[3, 2]} />
+            <meshStandardMaterial color="#E0E0E0" metalness={0.9} roughness={0.1} />
+          </mesh>
+        </group>
+      );
+
+    case 'bank':
+      return (
+        <group>
+          {/* Teller counter */}
+          <mesh position={[-2.5, -1.2, -1.5]}>
+            <boxGeometry args={[2, 1, 0.5]} />
+            <meshStandardMaterial color="#2F4F4F" />
+          </mesh>
+          {/* Glass partition */}
+          <mesh position={[-2.5, -0.3, -1.5]}>
+            <boxGeometry args={[2, 0.8, 0.05]} />
+            <meshStandardMaterial color="#87CEEB" transparent opacity={0.3} />
+          </mesh>
+          {/* ATM */}
+          <mesh position={[2.5, -1, -2]}>
+            <boxGeometry args={[0.6, 1.2, 0.4]} />
+            <meshStandardMaterial color="#2F4F4F" />
+          </mesh>
+          <mesh position={[2.5, -0.8, -1.78]}>
+            <boxGeometry args={[0.4, 0.3, 0.02]} />
+            <meshStandardMaterial color="#00FF00" emissive="#00FF00" emissiveIntensity={0.3} />
+          </mesh>
+          {/* Vault door */}
+          <mesh position={[0, -0.5, -3]}>
+            <circleGeometry args={[1, 32]} />
+            <meshStandardMaterial color="#4A5568" metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Rope barriers */}
+          {[-1, 0, 1].map((x, i) => (
+            <mesh key={i} position={[x, -1.5, 0]}>
+              <cylinderGeometry args={[0.05, 0.05, 1, 8]} />
+              <meshStandardMaterial color="#FFD700" />
+            </mesh>
+          ))}
+        </group>
+      );
+
+    case 'library':
+      return (
+        <group>
+          {/* Bookshelves */}
+          {[-3, 3].map((x, i) => (
+            <group key={i} position={[x, 0, -2.5]}>
+              <mesh>
+                <boxGeometry args={[1.2, 2.5, 0.4]} />
+                <meshStandardMaterial color="#5D4037" />
+              </mesh>
+              {[0.6, 0, -0.6].map((y, j) => (
+                <mesh key={j} position={[0, y, 0.15]}>
+                  <boxGeometry args={[1, 0.3, 0.3]} />
+                  <meshStandardMaterial color={['#8B0000', '#00008B', '#006400'][j]} />
+                </mesh>
+              ))}
+            </group>
+          ))}
+          {/* Reading desk */}
+          <mesh position={[0, -1.2, -1]}>
+            <boxGeometry args={[1.5, 0.1, 0.8]} />
+            <meshStandardMaterial color="#8B4513" />
+          </mesh>
+          {/* Desk lamp */}
+          <pointLight position={[0.3, -0.5, -1]} intensity={0.4} color="#FFFACD" distance={2} />
+          {/* Open book */}
+          <mesh position={[0, -1.1, -1]} rotation={[-0.2, 0, 0]}>
+            <boxGeometry args={[0.4, 0.02, 0.3]} />
+            <meshStandardMaterial color="#FFFFF0" />
+          </mesh>
+        </group>
+      );
+
+    case 'market':
+      return (
+        <group>
+          {/* Fruit stand */}
+          <mesh position={[-2.5, -1.3, -1.5]}>
+            <boxGeometry args={[1.5, 0.8, 0.6]} />
+            <meshStandardMaterial color="#8B4513" />
+          </mesh>
+          {/* Fruits */}
+          {[
+            { pos: [-2.8, -0.85, -1.4], c: '#FF6347' },
+            { pos: [-2.5, -0.85, -1.3], c: '#FFD700' },
+            { pos: [-2.2, -0.85, -1.5], c: '#32CD32' },
+          ].map((f, i) => (
+            <mesh key={i} position={[f.pos[0], f.pos[1], f.pos[2]]}>
+              <sphereGeometry args={[0.12, 16, 16]} />
+              <meshStandardMaterial color={f.c} />
+            </mesh>
+          ))}
+          {/* Awning */}
+          <mesh position={[-2.5, -0.3, -1.2]} rotation={[0.3, 0, 0]}>
+            <boxGeometry args={[1.8, 0.05, 1]} />
+            <meshStandardMaterial color="#FF6347" />
+          </mesh>
+          {/* Vegetable crates */}
+          <mesh position={[2.5, -1.6, -1]}>
+            <boxGeometry args={[0.6, 0.4, 0.5]} />
+            <meshStandardMaterial color="#8B4513" />
+          </mesh>
+          {/* Hanging scale */}
+          <mesh position={[0, -0.5, -1.5]}>
+            <cylinderGeometry args={[0.3, 0.3, 0.1, 16]} />
+            <meshStandardMaterial color="#C0C0C0" metalness={0.8} />
+          </mesh>
+        </group>
+      );
+
+    case 'cinema':
+      return (
+        <group>
+          {/* Screen */}
+          <mesh position={[0, 0.5, -4]}>
+            <planeGeometry args={[5, 2.5]} />
+            <meshStandardMaterial color="#1C1C1C" emissive="#333366" emissiveIntensity={0.2} />
+          </mesh>
+          {/* Theater seats */}
+          {[-2, -1, 0, 1, 2].map((x) => (
+            [-1, 0].map((z, i) => (
+              <mesh key={`${x}-${i}`} position={[x, -1.5 - i * 0.2, z - 0.5]}>
+                <boxGeometry args={[0.5, 0.4, 0.4]} />
+                <meshStandardMaterial color="#8B0000" />
+              </mesh>
+            ))
+          ))}
+          {/* Popcorn */}
+          <mesh position={[2.5, -1.3, 0]}>
+            <cylinderGeometry args={[0.15, 0.1, 0.3, 8]} />
+            <meshStandardMaterial color="#FF0000" />
+          </mesh>
+          {/* Exit sign */}
+          <mesh position={[3, 1.5, -2]}>
+            <boxGeometry args={[0.5, 0.2, 0.05]} />
+            <meshStandardMaterial color="#FF0000" emissive="#FF0000" emissiveIntensity={0.5} />
+          </mesh>
+          {/* Ambient theater lighting */}
+          <pointLight position={[-3, 1, -1]} intensity={0.1} color="#4169E1" distance={4} />
+          <pointLight position={[3, 1, -1]} intensity={0.1} color="#4169E1" distance={4} />
+        </group>
+      );
+
     case 'park':
     default:
       return (
