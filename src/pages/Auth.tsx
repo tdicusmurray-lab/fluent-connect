@@ -1,31 +1,22 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { SignIn, SignUp, useAuth } from "@clerk/clerk-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AuthButtons } from "@/components/AuthButtons";
-import { Globe, Mail, Lock, ArrowLeft } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Globe, ArrowLeft } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
+  const location = useLocation();
+  const { isSignedIn, isLoaded } = useAuth();
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>(
+    location.pathname.includes('sign-up') ? 'sign-up' : 'sign-in'
+  );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Authentication Required",
-      description: "Email/password authentication requires Clerk integration. Set up your Clerk API key to enable.",
-    });
-  };
-
-  const handleSocialAuth = (provider: string) => {
-    toast({
-      title: `${provider} Sign In`,
-      description: `${provider} authentication requires Clerk integration. Please configure your Clerk publishable key.`,
-    });
-  };
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate("/dashboard");
+    }
+  }, [isLoaded, isSignedIn, navigate]);
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
@@ -40,87 +31,88 @@ export default function Auth() {
         </Button>
 
         <div className="bg-card rounded-2xl shadow-card p-8">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-4">
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
                 <Globe className="w-7 h-7 text-primary-foreground" />
               </div>
             </div>
             <h1 className="font-display text-2xl font-bold">
-              {isSignUp ? "Create Account" : "Welcome Back"}
+              {mode === 'sign-up' ? "Create Account" : "Welcome Back"}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              {isSignUp 
+              {mode === 'sign-up' 
                 ? "Start your language learning journey" 
                 : "Continue your learning journey"}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full bg-muted rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-muted rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full" size="lg">
-              {isSignUp ? "Create Account" : "Sign In"}
-            </Button>
-          </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-card px-4 text-sm text-muted-foreground">
-                or continue with
-              </span>
+          <div className="flex justify-center mb-4">
+            <div className="bg-muted rounded-xl p-1 flex">
+              <button
+                onClick={() => setMode('sign-in')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  mode === 'sign-in' 
+                    ? 'bg-card shadow-soft text-foreground' 
+                    : 'text-muted-foreground'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setMode('sign-up')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  mode === 'sign-up' 
+                    ? 'bg-card shadow-soft text-foreground' 
+                    : 'text-muted-foreground'
+                }`}
+              >
+                Sign Up
+              </button>
             </div>
           </div>
 
-          <AuthButtons onAuth={handleSocialAuth} />
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            {isSignUp ? "Already have an account? " : "Don't have an account? "}
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary font-medium hover:underline"
-            >
-              {isSignUp ? "Sign In" : "Sign Up"}
-            </button>
-          </p>
+          <div className="flex justify-center [&_.cl-rootBox]:w-full [&_.cl-card]:shadow-none [&_.cl-card]:bg-transparent [&_.cl-headerTitle]:hidden [&_.cl-headerSubtitle]:hidden [&_.cl-socialButtonsBlockButton]:rounded-xl [&_.cl-formButtonPrimary]:gradient-primary [&_.cl-formButtonPrimary]:rounded-xl [&_.cl-footerActionLink]:text-primary">
+            {mode === 'sign-in' ? (
+              <SignIn 
+                routing="path" 
+                path="/sign-in"
+                signUpUrl="/sign-up"
+                afterSignInUrl="/dashboard"
+                appearance={{
+                  elements: {
+                    formButtonPrimary: 'bg-primary hover:bg-primary/90',
+                    socialButtonsBlockButton: 'border-border hover:bg-muted',
+                    formFieldInput: 'rounded-xl border-border focus:ring-primary',
+                    card: 'shadow-none',
+                  }
+                }}
+              />
+            ) : (
+              <SignUp 
+                routing="path" 
+                path="/sign-up"
+                signInUrl="/sign-in"
+                afterSignUpUrl="/dashboard"
+                appearance={{
+                  elements: {
+                    formButtonPrimary: 'bg-primary hover:bg-primary/90',
+                    socialButtonsBlockButton: 'border-border hover:bg-muted',
+                    formFieldInput: 'rounded-xl border-border focus:ring-primary',
+                    card: 'shadow-none',
+                  }
+                }}
+              />
+            )}
+          </div>
         </div>
 
-        <div className="mt-6 bg-warning-light rounded-xl p-4 text-center">
-          <p className="text-sm font-medium text-warning">
-            🔧 Authentication Setup Required
+        <div className="mt-6 bg-success-light rounded-xl p-4 text-center">
+          <p className="text-sm font-medium text-success">
+            ✓ Authentication Enabled
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            To enable authentication, integrate Clerk by adding your publishable key.
-            Supports Google, GitHub, Facebook, Twitter, Instagram, TikTok, and LinkedIn.
+            Sign in with Google, GitHub, Facebook, Twitter, and more!
           </p>
         </div>
       </div>
