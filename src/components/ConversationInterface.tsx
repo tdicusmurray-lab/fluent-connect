@@ -8,77 +8,13 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { storyModes } from "@/data/storyModes";
 import { Message, WordInContext } from "@/types/learning";
-import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ConversationInterfaceProps {
   onBack: () => void;
 }
-
-// Mock responses for demo
-const mockResponses: Record<string, { text: string; translation: string; words: WordInContext[] }[]> = {
-  restaurant: [
-    {
-      text: "¡Buenas tardes! Bienvenido a nuestro restaurante. ¿Mesa para cuántos?",
-      translation: "Good afternoon! Welcome to our restaurant. Table for how many?",
-      words: [
-        { word: "Buenas", translation: "Good", pronunciation: "BWEH-nahs", partOfSpeech: "adjective", isKnown: true, isNew: false },
-        { word: "tardes", translation: "afternoon", pronunciation: "TAR-des", partOfSpeech: "noun", isKnown: false, isNew: true },
-        { word: "Bienvenido", translation: "Welcome", pronunciation: "byen-beh-NEE-doh", partOfSpeech: "adjective", isKnown: false, isNew: true },
-        { word: "restaurante", translation: "restaurant", pronunciation: "res-tow-RAHN-teh", partOfSpeech: "noun", isKnown: true, isNew: false },
-        { word: "Mesa", translation: "Table", pronunciation: "MEH-sah", partOfSpeech: "noun", isKnown: false, isNew: true },
-        { word: "cuántos", translation: "how many", pronunciation: "KWAHN-tohs", partOfSpeech: "pronoun", isKnown: false, isNew: false },
-      ]
-    },
-    {
-      text: "Perfecto. Por aquí, por favor. Aquí tiene el menú.",
-      translation: "Perfect. This way, please. Here is the menu.",
-      words: [
-        { word: "Perfecto", translation: "Perfect", pronunciation: "per-FEK-toh", partOfSpeech: "adjective", isKnown: true, isNew: false },
-        { word: "aquí", translation: "here", pronunciation: "ah-KEE", partOfSpeech: "adverb", isKnown: false, isNew: true },
-        { word: "favor", translation: "please", pronunciation: "fah-VOR", partOfSpeech: "noun", isKnown: true, isNew: false },
-        { word: "tiene", translation: "have/has", pronunciation: "TYEH-neh", partOfSpeech: "verb", isKnown: false, isNew: true },
-        { word: "menú", translation: "menu", pronunciation: "meh-NOO", partOfSpeech: "noun", isKnown: true, isNew: false },
-      ]
-    },
-    {
-      text: "¿Qué le gustaría beber? Tenemos agua, vino, y cerveza.",
-      translation: "What would you like to drink? We have water, wine, and beer.",
-      words: [
-        { word: "gustaría", translation: "would like", pronunciation: "goos-tah-REE-ah", partOfSpeech: "verb", isKnown: false, isNew: true },
-        { word: "beber", translation: "to drink", pronunciation: "beh-BEHR", partOfSpeech: "verb", isKnown: false, isNew: true },
-        { word: "Tenemos", translation: "We have", pronunciation: "teh-NEH-mos", partOfSpeech: "verb", isKnown: false, isNew: false },
-        { word: "agua", translation: "water", pronunciation: "AH-gwah", partOfSpeech: "noun", isKnown: true, isNew: false },
-        { word: "vino", translation: "wine", pronunciation: "BEE-noh", partOfSpeech: "noun", isKnown: false, isNew: true },
-        { word: "cerveza", translation: "beer", pronunciation: "sehr-BEH-sah", partOfSpeech: "noun", isKnown: false, isNew: true },
-      ]
-    }
-  ],
-  default: [
-    {
-      text: "¡Hola! ¿Cómo estás hoy? Me alegro de verte.",
-      translation: "Hello! How are you today? I'm glad to see you.",
-      words: [
-        { word: "Hola", translation: "Hello", pronunciation: "OH-lah", partOfSpeech: "interjection", isKnown: true, isNew: false },
-        { word: "Cómo", translation: "How", pronunciation: "KOH-moh", partOfSpeech: "adverb", isKnown: false, isNew: true },
-        { word: "estás", translation: "are you", pronunciation: "es-TAHS", partOfSpeech: "verb", isKnown: false, isNew: false },
-        { word: "hoy", translation: "today", pronunciation: "oy", partOfSpeech: "adverb", isKnown: false, isNew: true },
-        { word: "alegro", translation: "glad", pronunciation: "ah-LEH-groh", partOfSpeech: "verb", isKnown: false, isNew: true },
-        { word: "verte", translation: "to see you", pronunciation: "BEHR-teh", partOfSpeech: "verb", isKnown: false, isNew: true },
-      ]
-    },
-    {
-      text: "¡Qué bien! ¿Qué te gustaría practicar hoy?",
-      translation: "Great! What would you like to practice today?",
-      words: [
-        { word: "Qué", translation: "What/How", pronunciation: "keh", partOfSpeech: "pronoun", isKnown: true, isNew: false },
-        { word: "bien", translation: "good/well", pronunciation: "byen", partOfSpeech: "adverb", isKnown: true, isNew: false },
-        { word: "gustaría", translation: "would like", pronunciation: "goos-tah-REE-ah", partOfSpeech: "verb", isKnown: false, isNew: false },
-        { word: "practicar", translation: "to practice", pronunciation: "prahk-tee-KAHR", partOfSpeech: "verb", isKnown: false, isNew: true },
-      ]
-    }
-  ]
-};
 
 export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const { messages, addMessage, currentStoryMode, useMessage, progress, addXp, targetLanguage } = useLearningStore();
@@ -86,13 +22,13 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const [responseIndex, setResponseIndex] = useState(0);
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
 
-  // Speech recognition hook - simplified API
+  // Speech recognition hook
   const {
     isListening,
     isSupported: speechRecognitionSupported,
@@ -140,36 +76,90 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    // Send initial greeting when entering conversation
-    if (messages.length === 0) {
-      const storyKey = currentStoryMode || 'default';
-      const responses = mockResponses[storyKey] || mockResponses.default;
-      const response = responses[0];
-      
-      setTimeout(() => {
-        setIsSpeaking(true);
-        addMessage({
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: response.text,
-          translation: response.translation,
-          words: response.words,
-          timestamp: new Date(),
-        });
-        
-        if (autoSpeak && speechSynthesisSupported) {
-          speak(response.text);
-        } else {
-          setTimeout(() => setIsSpeaking(false), 2000);
+  // Call AI for response
+  const getAIResponse = async (conversationHistory: { role: string; content: string }[]) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('language-chat', {
+        body: {
+          messages: conversationHistory,
+          targetLanguage: targetLanguage?.name || 'Spanish',
+          storyContext: currentStory?.scenario || null,
         }
-      }, 1000);
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to get AI response");
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
+    } catch (err) {
+      console.error("AI response error:", err);
+      throw err;
+    }
+  };
+
+  // Send initial greeting
+  useEffect(() => {
+    if (messages.length === 0) {
+      const sendGreeting = async () => {
+        setIsLoading(true);
+        setIsSpeaking(true);
+        
+        try {
+          const greeting = currentStory 
+            ? `Start the roleplay scenario. Greet me in ${targetLanguage?.name || 'Spanish'}.`
+            : `Greet me and ask what I'd like to practice in ${targetLanguage?.name || 'Spanish'}.`;
+          
+          const response = await getAIResponse([{ role: 'user', content: greeting }]);
+          
+          const words: WordInContext[] = (response.words || []).map((w: any) => ({
+            word: w.word,
+            translation: w.translation,
+            pronunciation: w.pronunciation || '',
+            partOfSpeech: w.partOfSpeech || 'unknown',
+            isKnown: false,
+            isNew: w.isNew ?? true,
+          }));
+
+          addMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: response.text,
+            translation: response.translation,
+            words,
+            timestamp: new Date(),
+          });
+
+          if (autoSpeak && speechSynthesisSupported && response.text) {
+            speak(response.text);
+          } else {
+            setIsSpeaking(false);
+          }
+        } catch (err) {
+          console.error("Failed to get greeting:", err);
+          toast({
+            title: "Connection Error",
+            description: "Failed to start conversation. Please try again.",
+            variant: "destructive",
+          });
+          setIsSpeaking(false);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      sendGreeting();
     }
   }, []);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const textToSend = inputText.trim();
-    if (!textToSend) return;
+    if (!textToSend || isLoading) return;
 
     // Stop listening if active
     if (isListening) {
@@ -187,42 +177,65 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     }
 
     // Add user message
-    addMessage({
+    const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: textToSend,
       timestamp: new Date(),
-    });
-
+    };
+    addMessage(userMessage);
     setInputText("");
     addXp(5);
 
-    // Simulate AI response
-    setTimeout(() => {
-      setIsSpeaking(true);
-      const storyKey = currentStoryMode || 'default';
-      const responses = mockResponses[storyKey] || mockResponses.default;
-      const nextIndex = (responseIndex + 1) % responses.length;
-      const response = responses[nextIndex];
-      
+    // Get AI response
+    setIsLoading(true);
+    setIsSpeaking(true);
+
+    try {
+      // Build conversation history
+      const conversationHistory = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user', content: textToSend }
+      ];
+
+      const response = await getAIResponse(conversationHistory);
+
+      const words: WordInContext[] = (response.words || []).map((w: any) => ({
+        word: w.word,
+        translation: w.translation,
+        pronunciation: w.pronunciation || '',
+        partOfSpeech: w.partOfSpeech || 'unknown',
+        isKnown: false,
+        isNew: w.isNew ?? true,
+      }));
+
       addMessage({
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response.text,
         translation: response.translation,
-        words: response.words,
+        words,
         timestamp: new Date(),
       });
-      
-      setResponseIndex(nextIndex);
+
       addXp(10);
-      
-      if (autoSpeak && speechSynthesisSupported) {
+
+      if (autoSpeak && speechSynthesisSupported && response.text) {
         speak(response.text);
       } else {
-        setTimeout(() => setIsSpeaking(false), 2000);
+        setIsSpeaking(false);
       }
-    }, 1500);
+    } catch (err: any) {
+      console.error("Failed to get response:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to get AI response. Please try again.",
+        variant: "destructive",
+      });
+      setIsSpeaking(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleMicClick = () => {
@@ -303,9 +316,26 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
               </div>
             )}
             
+            {isLoading && messages.length === 0 && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-3 text-muted-foreground">Starting conversation...</span>
+              </div>
+            )}
+            
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
+            
+            {isLoading && messages.length > 0 && (
+              <div className="flex items-center gap-3 p-4">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+                <span className="text-muted-foreground text-sm">Lingo is typing...</span>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
 
@@ -336,6 +366,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
                 variant={isListening ? "destructive" : "default"}
                 size="icon"
                 onClick={handleMicClick}
+                disabled={isLoading}
                 className={`shrink-0 relative ${isListening ? 'animate-pulse' : ''}`}
               >
                 {isListening ? (
@@ -352,13 +383,14 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
                 type="text"
                 value={displayText}
                 onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
                 placeholder="Type or click mic to speak..."
-                className="flex-1 bg-muted rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={isLoading}
+                className="flex-1 bg-muted rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
               />
               
-              <Button onClick={handleSend} disabled={!displayText.trim()}>
-                <Send className="w-5 h-5" />
+              <Button onClick={handleSend} disabled={!displayText.trim() || isLoading}>
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </Button>
             </div>
 
@@ -380,7 +412,9 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
               <div className="p-4 border-t border-border">
                 <h3 className="font-display font-bold text-sm mb-2">Lingo</h3>
                 <p className="text-xs text-muted-foreground">
-                  {isSynthesizing ? (
+                  {isLoading ? (
+                    <span className="text-primary">💭 Thinking...</span>
+                  ) : isSynthesizing ? (
                     <span className="text-primary">🔊 Speaking...</span>
                   ) : isListening ? (
                     <span className="text-destructive">🎤 Listening to you...</span>
