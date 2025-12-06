@@ -59,3 +59,25 @@ export interface Language {
   flag: string;
   nativeName: string;
 }
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  requirement: number;
+  type: 'words' | 'streak' | 'conversations' | 'xp' | 'level';
+  unlockedAt?: Date;
+}
+
+export interface DailyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  target: number;
+  current: number;
+  xpReward: number;
+  type: 'words' | 'conversations' | 'practice';
+  completed: boolean;
+  expiresAt: Date;
+}
