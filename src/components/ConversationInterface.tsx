@@ -36,8 +36,26 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
 
+  // Show loading skeleton while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
+        <div className="w-64 h-64 bg-muted rounded-2xl animate-pulse" />
+        <div className="space-y-3 w-full max-w-sm">
+          <div className="h-8 bg-muted rounded-lg animate-pulse" />
+          <div className="h-4 bg-muted rounded-lg animate-pulse w-3/4 mx-auto" />
+          <div className="h-4 bg-muted rounded-lg animate-pulse w-1/2 mx-auto" />
+        </div>
+        <div className="flex gap-4">
+          <div className="h-10 w-24 bg-muted rounded-lg animate-pulse" />
+          <div className="h-10 w-24 bg-muted rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   // Show login prompt if not authenticated
-  if (!authLoading && !isSignedIn) {
+  if (!isSignedIn) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
         <div className="w-64 h-64">
