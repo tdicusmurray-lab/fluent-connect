@@ -16,7 +16,7 @@ const messageSchema = z.object({
 const requestSchema = z.object({
   messages: z.array(messageSchema).max(50),
   targetLanguage: z.string().min(1).max(50),
-  storyContext: z.string().max(500).optional(),
+  storyContext: z.string().max(500).nullish(),
 });
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
