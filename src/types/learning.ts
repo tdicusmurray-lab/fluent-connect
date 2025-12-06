@@ -81,3 +81,24 @@ export interface DailyChallenge {
   completed: boolean;
   expiresAt: Date;
 }
+
+export type OwlMood = 'neutral' | 'happy' | 'encouraging' | 'thinking' | 'celebrating' | 'curious';
+
+export interface WeeklyStats {
+  wordsLearned: number;
+  wordsPracticed: number;
+  conversationsHad: number;
+  minutesPracticed: number;
+  streakDays: number;
+  xpEarned: number;
+  topWords: string[];
+  improvement: number; // percentage improvement from last week
+}
+
+export interface LearningSession {
+  startTime: Date;
+  endTime?: Date;
+  wordsLearned: number;
+  messagesExchanged: number;
+  xpEarned: number;
+}
