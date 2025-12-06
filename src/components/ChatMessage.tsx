@@ -16,26 +16,31 @@ export function ChatMessage({ message }: ChatMessageProps) {
     }
 
     // Split content and wrap words with tooltips
-    const words = message.content.split(/(\s+)/);
-    let wordIndex = 0;
+    const tokens = message.content.split(/(\s+)/);
 
-    return words.map((word, i) => {
-      if (/^\s+$/.test(word)) {
-        return <span key={i}>{word}</span>;
+    // Helper to clean word for comparison (remove punctuation)
+    const cleanWord = (w: string) => w.replace(/[¿¡?!.,;:'"()]/g, '').toLowerCase();
+
+    return tokens.map((token, i) => {
+      if (/^\s+$/.test(token)) {
+        return <span key={i}>{token}</span>;
       }
 
-      const wordData = message.words?.[wordIndex];
-      wordIndex++;
+      // Find matching word data by comparing cleaned words
+      const cleanedToken = cleanWord(token);
+      const wordData = message.words?.find(
+        (w) => cleanWord(w.word) === cleanedToken
+      );
 
       if (wordData) {
         return (
           <WordTooltip key={i} wordData={wordData}>
-            {word}
+            {token}
           </WordTooltip>
         );
       }
 
-      return <span key={i}>{word}</span>;
+      return <span key={i}>{token}</span>;
     });
   };
 
