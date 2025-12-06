@@ -7,6 +7,11 @@ import { VocabularyList } from "@/components/VocabularyList";
 import { LearningPathway } from "@/components/LearningPathway";
 import { PremiumTab } from "@/components/PremiumTab";
 import { OwlCharacter } from "@/components/OwlCharacter";
+import { DailyChallenges } from "@/components/DailyChallenges";
+import { AchievementsPanel } from "@/components/AchievementsPanel";
+import { FlashcardPractice } from "@/components/FlashcardPractice";
+import { StreakCelebration } from "@/components/StreakCelebration";
+import { GreetingHeader } from "@/components/GreetingHeader";
 import { useLearningStore } from "@/stores/learningStore";
 import { storyModes } from "@/data/storyModes";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +25,8 @@ import {
   Globe,
   Menu,
   X,
-  LogIn
+  LogIn,
+  Brain
 } from "lucide-react";
 
 type Tab = 'learn' | 'stories' | 'vocabulary' | 'pathway' | 'premium';
@@ -33,6 +39,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('learn');
   const [isInConversation, setIsInConversation] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showFlashcards, setShowFlashcards] = useState(false);
 
   if (!targetLanguage) {
     navigate("/");
@@ -49,6 +56,10 @@ export default function Dashboard() {
     setIsInConversation(true);
   };
 
+  if (showFlashcards) {
+    return <FlashcardPractice onClose={() => setShowFlashcards(false)} />;
+  }
+
   if (isInConversation) {
     return <ConversationInterface onBack={() => setIsInConversation(false)} />;
   }
@@ -62,6 +73,8 @@ export default function Dashboard() {
   ];
 
   return (
+    <>
+    <StreakCelebration />
     <div className="min-h-screen bg-background flex">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col">
@@ -156,6 +169,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 overflow-auto lg:p-8 p-4 pt-32 lg:pt-8">
         <div className="max-w-6xl mx-auto">
+          <GreetingHeader />
           {activeTab === 'learn' && (
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
@@ -177,16 +191,24 @@ export default function Dashboard() {
                       <BookOpen className="w-5 h-5 mr-2" />
                       Story Mode
                     </Button>
+                    <Button variant="secondary" size="lg" onClick={() => setShowFlashcards(true)}>
+                      <Brain className="w-5 h-5 mr-2" />
+                      Quick Practice
+                    </Button>
                   </div>
                 </div>
 
                 <div className="h-[300px] bg-card rounded-2xl shadow-card overflow-hidden">
                   <OwlCharacter />
                 </div>
+
+                {/* Daily Challenges */}
+                <DailyChallenges />
               </div>
 
-              <div>
+              <div className="space-y-6">
                 <ProgressCard />
+                <AchievementsPanel />
               </div>
             </div>
           )}
@@ -250,5 +272,6 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+    </>
   );
 }
