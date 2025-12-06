@@ -1061,8 +1061,10 @@ function Background({ scenario }: { scenario: string }) {
   );
 }
 
-// Enhanced detailed owl with lip sync
-function Owl({ isSpeaking = false }: { isSpeaking?: boolean }) {
+// Enhanced detailed owl with lip sync and mood expressions
+type OwlMood = 'neutral' | 'happy' | 'encouraging' | 'thinking' | 'celebrating' | 'curious';
+
+function Owl({ isSpeaking = false, mood = 'neutral' as OwlMood }: { isSpeaking?: boolean; mood?: OwlMood }) {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const leftEyeRef = useRef<THREE.Mesh>(null);
@@ -1077,47 +1079,99 @@ function Owl({ isSpeaking = false }: { isSpeaking?: boolean }) {
   useFrame((state) => {
     const time = state.clock.elapsedTime;
     
-    // Subtle body sway
+    // Body animations based on mood
     if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(time * 0.4) * 0.08;
-      groupRef.current.position.y = Math.sin(time * 1.5) * 0.03;
+      const swayIntensity = mood === 'celebrating' ? 0.15 : mood === 'happy' ? 0.1 : 0.08;
+      const swaySpeed = mood === 'celebrating' ? 0.8 : 0.4;
+      const bounceIntensity = mood === 'celebrating' ? 0.08 : mood === 'happy' ? 0.05 : 0.03;
+      
+      groupRef.current.rotation.y = Math.sin(time * swaySpeed) * swayIntensity;
+      groupRef.current.position.y = Math.sin(time * (mood === 'celebrating' ? 3 : 1.5)) * bounceIntensity;
     }
     
-    // Head movement - looks around curiously
+    // Head movement based on mood
     if (headRef.current) {
-      headRef.current.rotation.y = Math.sin(time * 0.6) * 0.15;
-      headRef.current.rotation.x = Math.sin(time * 0.8) * 0.05;
-      headRef.current.rotation.z = Math.sin(time * 0.5) * 0.03;
+      let headRotY = Math.sin(time * 0.6) * 0.15;
+      let headRotX = Math.sin(time * 0.8) * 0.05;
+      let headRotZ = Math.sin(time * 0.5) * 0.03;
+      
+      if (mood === 'curious') {
+        headRotY = Math.sin(time * 0.8) * 0.25;
+        headRotX = Math.sin(time * 0.6) * 0.1 + 0.1; // Tilt head up
+      } else if (mood === 'thinking') {
+        headRotY = 0.15; // Look to the side
+        headRotX = Math.sin(time * 0.3) * 0.03 + 0.05; // Slight upward gaze
+      } else if (mood === 'happy' || mood === 'celebrating') {
+        headRotX = Math.sin(time * 2) * 0.05 - 0.05; // Slight nod
+      }
+      
+      headRef.current.rotation.y = headRotY;
+      headRef.current.rotation.x = headRotX;
+      headRef.current.rotation.z = headRotZ;
     }
     
-    // Eye blinking animation
+    // Eye expressions based on mood
     if (leftEyeRef.current && rightEyeRef.current) {
       const blinkCycle = Math.sin(time * 2.5);
-      const blink = blinkCycle > 0.92 ? Math.max(0.1, 1 - (blinkCycle - 0.92) * 12) : 1;
+      let blink = blinkCycle > 0.92 ? Math.max(0.1, 1 - (blinkCycle - 0.92) * 12) : 1;
+      
+      // Happy/celebrating = squinty happy eyes
+      if (mood === 'happy' || mood === 'celebrating') {
+        blink = Math.min(blink, 0.7 + Math.sin(time * 2) * 0.1);
+      }
+      
       leftEyeRef.current.scale.y = blink;
       rightEyeRef.current.scale.y = blink;
+      
+      // Eye size based on mood
+      const eyeScale = mood === 'curious' ? 1.15 : mood === 'encouraging' ? 1.1 : 1;
+      leftEyeRef.current.scale.x = eyeScale;
+      rightEyeRef.current.scale.x = eyeScale;
     }
     
-    // Eyebrow expressions - raise when speaking
+    // Eyebrow expressions based on mood
     if (leftEyebrowRef.current && rightEyebrowRef.current) {
       const baseY = 1.35;
-      const raiseAmount = isSpeaking ? Math.sin(time * 4) * 0.03 + 0.05 : 0;
+      let raiseAmount = isSpeaking ? Math.sin(time * 4) * 0.03 + 0.05 : 0;
+      let leftRotation = 0;
+      let rightRotation = 0;
+      
+      if (mood === 'happy' || mood === 'celebrating') {
+        raiseAmount += 0.08;
+        leftRotation = 0.15; // Arch up
+        rightRotation = -0.15;
+      } else if (mood === 'encouraging') {
+        raiseAmount += 0.06;
+        leftRotation = 0.1;
+        rightRotation = -0.1;
+      } else if (mood === 'thinking') {
+        leftRotation = -0.1; // Slight furrow
+        rightRotation = 0.1;
+        raiseAmount -= 0.02;
+      } else if (mood === 'curious') {
+        raiseAmount += 0.05;
+      }
+      
       leftEyebrowRef.current.position.y = baseY + raiseAmount;
       rightEyebrowRef.current.position.y = baseY + raiseAmount;
+      leftEyebrowRef.current.rotation.z = leftRotation;
+      rightEyebrowRef.current.rotation.z = rightRotation;
     }
     
-    // Lip sync - beak movement when speaking
+    // Beak/mouth animations
     if (beakTopRef.current && beakBottomRef.current) {
       if (isSpeaking) {
-        // Create varied mouth movements for speech
         const mouthOpen = Math.abs(Math.sin(time * 12)) * 0.12 + 
                          Math.abs(Math.sin(time * 8)) * 0.06 +
                          Math.abs(Math.sin(time * 15)) * 0.04;
         beakTopRef.current.rotation.x = -0.1 - mouthOpen * 0.3;
         beakBottomRef.current.rotation.x = 0.1 + mouthOpen * 0.5;
         beakBottomRef.current.position.y = 0.42 - mouthOpen * 0.08;
+      } else if (mood === 'happy' || mood === 'celebrating') {
+        // Slight smile
+        beakTopRef.current.rotation.x = -0.12;
+        beakBottomRef.current.rotation.x = 0.08;
       } else {
-        // Subtle breathing movement when idle
         const breathe = Math.sin(time * 1.5) * 0.02;
         beakTopRef.current.rotation.x = -0.1 + breathe;
         beakBottomRef.current.rotation.x = 0.1 - breathe;
@@ -1125,10 +1179,23 @@ function Owl({ isSpeaking = false }: { isSpeaking?: boolean }) {
       }
     }
     
-    // Wing fluttering - more active when speaking
+    // Wing animations based on mood
     if (leftWingRef.current && rightWingRef.current) {
-      const wingBase = isSpeaking ? 0.15 : 0.05;
-      const wingSpeed = isSpeaking ? 6 : 2;
+      let wingBase = isSpeaking ? 0.15 : 0.05;
+      let wingSpeed = isSpeaking ? 6 : 2;
+      
+      if (mood === 'celebrating') {
+        wingBase = 0.25;
+        wingSpeed = 8;
+      } else if (mood === 'happy') {
+        wingBase = 0.1;
+        wingSpeed = 4;
+      } else if (mood === 'encouraging') {
+        // Wave motion
+        wingBase = 0.2;
+        wingSpeed = 3;
+      }
+      
       leftWingRef.current.rotation.z = 0.3 + Math.sin(time * wingSpeed) * wingBase;
       rightWingRef.current.rotation.z = -0.3 - Math.sin(time * wingSpeed) * wingBase;
     }
@@ -1392,10 +1459,11 @@ function Owl({ isSpeaking = false }: { isSpeaking?: boolean }) {
 
 interface OwlCharacterProps {
   isSpeaking?: boolean;
+  mood?: 'neutral' | 'happy' | 'encouraging' | 'thinking' | 'celebrating' | 'curious';
   className?: string;
 }
 
-export function OwlCharacter({ isSpeaking = false, className = "" }: OwlCharacterProps) {
+export function OwlCharacter({ isSpeaking = false, mood = 'neutral', className = "" }: OwlCharacterProps) {
   const currentStoryMode = useLearningStore(state => state.currentStoryMode);
   const scenario = currentStoryMode || 'free';
   const config = scenarioBackgrounds[scenario] || scenarioBackgrounds.free;
@@ -1414,7 +1482,7 @@ export function OwlCharacter({ isSpeaking = false, className = "" }: OwlCharacte
         <directionalLight position={[-5, 3, 5]} intensity={0.4} />
         <pointLight position={[0, 2, 3]} intensity={0.3} color="#ffffff" />
         <Background scenario={scenario} />
-        <Owl isSpeaking={isSpeaking} />
+        <Owl isSpeaking={isSpeaking} mood={mood} />
         <OrbitControls 
           enableZoom={false} 
           enablePan={false}

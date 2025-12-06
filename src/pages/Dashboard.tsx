@@ -12,6 +12,9 @@ import { AchievementsPanel } from "@/components/AchievementsPanel";
 import { FlashcardPractice } from "@/components/FlashcardPractice";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { GreetingHeader } from "@/components/GreetingHeader";
+import { WeeklyProgressReport } from "@/components/WeeklyProgressReport";
+import { WordOfTheDay } from "@/components/WordOfTheDay";
+import { LearningTips } from "@/components/LearningTips";
 import { useLearningStore } from "@/stores/learningStore";
 import { storyModes } from "@/data/storyModes";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +29,8 @@ import {
   Menu,
   X,
   LogIn,
-  Brain
+  Brain,
+  BarChart3
 } from "lucide-react";
 
 type Tab = 'learn' | 'stories' | 'vocabulary' | 'pathway' | 'premium';
@@ -174,9 +178,19 @@ export default function Dashboard() {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-card rounded-2xl p-6 shadow-card">
-                  <h2 className="font-display text-2xl font-bold mb-4">
-                    Ready to practice?
-                  </h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-display text-2xl font-bold">
+                      Ready to practice?
+                    </h2>
+                    <WeeklyProgressReport 
+                      trigger={
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <BarChart3 className="w-4 h-4" />
+                          <span className="hidden sm:inline">Weekly Report</span>
+                        </Button>
+                      }
+                    />
+                  </div>
                   <p className="text-muted-foreground mb-6">
                     Start a conversation and your AI tutor will introduce new {targetLanguage.name} words 
                     based on what you already know.
@@ -199,15 +213,19 @@ export default function Dashboard() {
                 </div>
 
                 <div className="h-[300px] bg-card rounded-2xl shadow-card overflow-hidden">
-                  <OwlCharacter />
+                  <OwlCharacter mood="curious" />
                 </div>
 
                 {/* Daily Challenges */}
                 <DailyChallenges />
+                
+                {/* Learning Tips */}
+                <LearningTips />
               </div>
 
               <div className="space-y-6">
                 <ProgressCard />
+                <WordOfTheDay />
                 <AchievementsPanel />
               </div>
             </div>
