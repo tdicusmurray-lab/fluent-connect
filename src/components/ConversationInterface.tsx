@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "./ChatMessage";
@@ -31,10 +31,11 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [greetingSent, setGreetingSent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Speech recognition hook - MUST be called before any conditional returns
+  // Speech recognition hook
   const {
     isListening,
     isSupported: speechRecognitionSupported,
@@ -46,7 +47,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     resetTranscript,
   } = useSpeechRecognition('en-US');
 
-  // Speech synthesis hook - MUST be called before any conditional returns
+  // Speech synthesis hook
   const {
     speak,
     stop: stopSpeaking,
@@ -62,20 +63,8 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const messagesRemaining = progress.messagesLimit - progress.messagesUsed;
   const displayText = inputText || (isListening ? interimTranscript : '');
 
-  // Sync progress when leaving the conversation
-  const handleBack = async () => {
-    if (user && messages.length > 0) {
-      await syncProgressToDatabase();
-      toast({
-        title: "Progress saved",
-        description: "Your XP and streak have been saved.",
-      });
-    }
-    onBack();
-  };
-
   // Save words from AI response to database
-  const saveWordsToDatabase = async (words: any[]) => {
+  const saveWordsToDatabase = useCallback(async (words: any[]) => {
     if (!user || !words.length) return;
     
     for (const w of words) {
@@ -88,16 +77,16 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
         });
       }
     }
-  };
+  }, [user, addWord]);
 
-  // Update input when transcript changes - MUST be before conditional returns
+  // Update input when transcript changes
   useEffect(() => {
     if (transcript) {
       setInputText(transcript);
     }
   }, [transcript]);
 
-  // Show errors - MUST be before conditional returns
+  // Show errors
   useEffect(() => {
     if (speechError) {
       toast({
@@ -110,41 +99,16 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     }
   }, [speechError, toast]);
 
-  // Scroll to bottom - MUST be before conditional returns
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Call AI for response - define before useEffect that uses it
-  const getAIResponse = async (conversationHistory: { role: string; content: string }[]) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('language-chat', {
-        body: {
-          messages: conversationHistory,
-          targetLanguage: targetLanguage?.name || 'Spanish',
-          storyContext: currentStory?.scenario || null,
-        }
-      });
-
-      if (error) {
-        console.error("Edge function error:", error);
-        throw new Error(error.message || "Failed to get AI response");
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      return data;
-    } catch (err) {
-      console.error("AI response error:", err);
-      throw err;
-    }
-  };
-
-  // Send initial greeting - MUST be before conditional returns
+  // Send initial greeting
   useEffect(() => {
-    if (messages.length === 0 && isSignedIn && !authLoading) {
+    if (messages.length === 0 && isSignedIn && !authLoading && !greetingSent) {
+      setGreetingSent(true);
+      
       const sendGreeting = async () => {
         setIsLoading(true);
         setIsSpeaking(true);
@@ -154,9 +118,18 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
             ? `Start the roleplay scenario. Greet me in ${targetLanguage?.name || 'Spanish'}.`
             : `Greet me and ask what I'd like to practice in ${targetLanguage?.name || 'Spanish'}.`;
           
-          const response = await getAIResponse([{ role: 'user', content: greeting }]);
+          const { data, error } = await supabase.functions.invoke('language-chat', {
+            body: {
+              messages: [{ role: 'user', content: greeting }],
+              targetLanguage: targetLanguage?.name || 'Spanish',
+              storyContext: currentStory?.scenario || null,
+            }
+          });
+
+          if (error) throw new Error(error.message || "Failed to get AI response");
+          if (data.error) throw new Error(data.error);
           
-          const words: WordInContext[] = (response.words || []).map((w: any) => ({
+          const words: WordInContext[] = (data.words || []).map((w: any) => ({
             word: w.word,
             translation: w.translation,
             pronunciation: w.pronunciation || '',
@@ -166,19 +139,19 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
           }));
 
           // Save new words to database
-          saveWordsToDatabase(response.words || []);
+          saveWordsToDatabase(data.words || []);
 
           addMessage({
             id: Date.now().toString(),
             role: 'assistant',
-            content: response.text,
-            translation: response.translation,
+            content: data.text,
+            translation: data.translation,
             words,
             timestamp: new Date(),
           });
 
-          if (autoSpeak && speechSynthesisSupported && response.text) {
-            speak(response.text);
+          if (autoSpeak && speechSynthesisSupported && data.text) {
+            speak(data.text);
           } else {
             setIsSpeaking(false);
           }
@@ -197,7 +170,137 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
 
       sendGreeting();
     }
-  }, [isSignedIn, authLoading]);
+  }, [isSignedIn, authLoading, messages.length, greetingSent, currentStory, targetLanguage, autoSpeak, speechSynthesisSupported, speak, toast, addMessage, saveWordsToDatabase]);
+
+  // Sync progress when leaving the conversation
+  const handleBack = useCallback(async () => {
+    if (user && messages.length > 0) {
+      await syncProgressToDatabase();
+      toast({
+        title: "Progress saved",
+        description: "Your XP and streak have been saved.",
+      });
+    }
+    onBack();
+  }, [user, messages.length, syncProgressToDatabase, toast, onBack]);
+
+  const handleSend = useCallback(async () => {
+    const textToSend = inputText.trim();
+    if (!textToSend || isLoading) return;
+
+    // Stop listening if active
+    if (isListening) {
+      stopListening();
+    }
+    resetTranscript();
+
+    if (!useMessage()) {
+      toast({
+        title: "Out of messages!",
+        description: "Upgrade to premium for unlimited conversations.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: textToSend,
+      timestamp: new Date(),
+    };
+    addMessage(userMessage);
+    setInputText("");
+    addXp(5);
+
+    // Get AI response
+    setIsLoading(true);
+    setIsSpeaking(true);
+
+    try {
+      // Build conversation history
+      const conversationHistory = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user', content: textToSend }
+      ];
+
+      const { data, error } = await supabase.functions.invoke('language-chat', {
+        body: {
+          messages: conversationHistory,
+          targetLanguage: targetLanguage?.name || 'Spanish',
+          storyContext: currentStory?.scenario || null,
+        }
+      });
+
+      if (error) throw new Error(error.message || "Failed to get AI response");
+      if (data.error) throw new Error(data.error);
+
+      const words: WordInContext[] = (data.words || []).map((w: any) => ({
+        word: w.word,
+        translation: w.translation,
+        pronunciation: w.pronunciation || '',
+        partOfSpeech: w.partOfSpeech || 'unknown',
+        isKnown: false,
+        isNew: w.isNew ?? true,
+      }));
+
+      // Save new words to database
+      saveWordsToDatabase(data.words || []);
+
+      addMessage({
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.text,
+        translation: data.translation,
+        words,
+        timestamp: new Date(),
+      });
+
+      addXp(10);
+
+      if (autoSpeak && speechSynthesisSupported && data.text) {
+        speak(data.text);
+      } else {
+        setIsSpeaking(false);
+      }
+    } catch (err: any) {
+      console.error("Failed to get response:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to get AI response. Please try again.",
+        variant: "destructive",
+      });
+      setIsSpeaking(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [inputText, isLoading, isListening, stopListening, resetTranscript, useMessage, toast, addMessage, addXp, messages, targetLanguage, currentStory, saveWordsToDatabase, autoSpeak, speechSynthesisSupported, speak]);
+
+  const handleMicClick = useCallback(() => {
+    if (!speechRecognitionSupported) {
+      toast({
+        title: "Not supported",
+        description: "Speech recognition is not supported in your browser. Try Chrome or Edge.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!isListening) {
+      resetTranscript();
+      setInputText("");
+    }
+    
+    toggleListening();
+  }, [speechRecognitionSupported, toast, isListening, resetTranscript, toggleListening]);
+
+  const toggleAutoSpeak = useCallback(() => {
+    if (isSynthesizing) {
+      stopSpeaking();
+    }
+    setAutoSpeak(prev => !prev);
+  }, [isSynthesizing, stopSpeaking]);
 
   // Show loading skeleton while checking auth
   if (authLoading) {
@@ -242,115 +345,6 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     );
   }
 
-  const handleSend = async () => {
-    const textToSend = inputText.trim();
-    if (!textToSend || isLoading) return;
-
-    // Stop listening if active
-    if (isListening) {
-      stopListening();
-    }
-    resetTranscript();
-
-    if (!useMessage()) {
-      toast({
-        title: "Out of messages!",
-        description: "Upgrade to premium for unlimited conversations.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: textToSend,
-      timestamp: new Date(),
-    };
-    addMessage(userMessage);
-    setInputText("");
-    addXp(5);
-
-    // Get AI response
-    setIsLoading(true);
-    setIsSpeaking(true);
-
-    try {
-      // Build conversation history
-      const conversationHistory = [
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: textToSend }
-      ];
-
-      const response = await getAIResponse(conversationHistory);
-
-      const words: WordInContext[] = (response.words || []).map((w: any) => ({
-        word: w.word,
-        translation: w.translation,
-        pronunciation: w.pronunciation || '',
-        partOfSpeech: w.partOfSpeech || 'unknown',
-        isKnown: false,
-        isNew: w.isNew ?? true,
-      }));
-
-      // Save new words to database
-      saveWordsToDatabase(response.words || []);
-
-      addMessage({
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.text,
-        translation: response.translation,
-        words,
-        timestamp: new Date(),
-      });
-
-      addXp(10);
-
-      if (autoSpeak && speechSynthesisSupported && response.text) {
-        speak(response.text);
-      } else {
-        setIsSpeaking(false);
-      }
-    } catch (err: any) {
-      console.error("Failed to get response:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to get AI response. Please try again.",
-        variant: "destructive",
-      });
-      setIsSpeaking(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleMicClick = () => {
-    if (!speechRecognitionSupported) {
-      toast({
-        title: "Not supported",
-        description: "Speech recognition is not supported in your browser. Try Chrome or Edge.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!isListening) {
-      resetTranscript();
-      setInputText("");
-    }
-    
-    toggleListening();
-  };
-
-  const toggleAutoSpeak = () => {
-    if (isSynthesizing) {
-      stopSpeaking();
-    }
-    setAutoSpeak(!autoSpeak);
-  };
-
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
@@ -370,7 +364,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant={autoSpeak ? "default" : "muted"}
+            variant={autoSpeak ? "default" : "secondary"}
             size="icon"
             onClick={toggleAutoSpeak}
             title={autoSpeak ? "Auto-speak enabled" : "Auto-speak disabled"}
@@ -378,7 +372,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
             {autoSpeak ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </Button>
           <Button
-            variant={isVideoOn ? "default" : "muted"}
+            variant={isVideoOn ? "default" : "secondary"}
             size="icon"
             onClick={() => setIsVideoOn(!isVideoOn)}
           >
@@ -498,13 +492,11 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
                 <h3 className="font-display font-bold text-sm mb-2">Lingo</h3>
                 <p className="text-xs text-muted-foreground">
                   {isLoading ? (
-                    <span className="text-primary">💭 Thinking...</span>
-                  ) : isSynthesizing ? (
-                    <span className="text-primary">🔊 Speaking...</span>
-                  ) : isListening ? (
-                    <span className="text-destructive">🎤 Listening to you...</span>
+                    "Thinking..."
+                  ) : isSpeaking || isSynthesizing ? (
+                    "Speaking..."
                   ) : (
-                    "Click the mic to speak, or type. Hover over words for translations!"
+                    "Ready to help you learn!"
                   )}
                 </p>
               </div>
