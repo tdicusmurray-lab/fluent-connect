@@ -1,9 +1,21 @@
 import { Progress } from "@/components/ui/progress";
 import { useLearningStore } from "@/stores/learningStore";
+import { useVocabulary } from "@/hooks/useVocabulary";
+import { useAuth } from "@/hooks/useAuth";
 import { Flame, BookOpen, Brain, MessageCircle, Star } from "lucide-react";
 
 export function ProgressCard() {
   const { progress, targetLanguage } = useLearningStore();
+  const { user } = useAuth();
+  const { stats: dbStats } = useVocabulary();
+  
+  // Use DB stats if user is authenticated, otherwise use local store
+  const vocabStats = user ? dbStats : {
+    totalWords: progress.totalWords,
+    knownWords: progress.knownWords,
+    learningWords: progress.learningWords,
+  };
+  
   const messagesRemaining = progress.messagesLimit - progress.messagesUsed;
   const xpProgress = (progress.xp / progress.xpToNextLevel) * 100;
 
@@ -47,7 +59,7 @@ export function ProgressCard() {
             <BookOpen className="w-5 h-5 text-info" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-info">{progress.totalWords}</p>
+            <p className="text-2xl font-bold text-info">{vocabStats.totalWords}</p>
             <p className="text-xs text-muted-foreground">Words</p>
           </div>
         </div>
@@ -57,7 +69,7 @@ export function ProgressCard() {
             <Brain className="w-5 h-5 text-warning" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-warning">{progress.knownWords}</p>
+            <p className="text-2xl font-bold text-warning">{vocabStats.knownWords}</p>
             <p className="text-xs text-muted-foreground">Mastered</p>
           </div>
         </div>
