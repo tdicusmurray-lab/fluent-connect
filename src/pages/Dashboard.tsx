@@ -11,16 +11,16 @@ import { useLearningStore } from "@/stores/learningStore";
 import { storyModes } from "@/data/storyModes";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   MessageCircle, 
   BookOpen, 
   Map, 
-  Settings, 
   Crown,
   Globe,
-  ArrowLeft,
   Menu,
-  X
+  X,
+  LogIn
 } from "lucide-react";
 
 type Tab = 'learn' | 'stories' | 'vocabulary' | 'pathway' | 'premium';
@@ -28,6 +28,7 @@ type Tab = 'learn' | 'stories' | 'vocabulary' | 'pathway' | 'premium';
 export default function Dashboard() {
   const navigate = useNavigate();
   const { createCheckout } = useSubscription();
+  const { isSignedIn, isLoading } = useAuth();
   const { targetLanguage, setStoryMode, clearMessages, progress } = useLearningStore();
   const [activeTab, setActiveTab] = useState<Tab>('learn');
   const [isInConversation, setIsInConversation] = useState(false);
@@ -90,7 +91,7 @@ export default function Dashboard() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-3">
           <div className="flex items-center gap-3 px-4 py-2">
             <span className="text-3xl">{targetLanguage.flag}</span>
             <div>
@@ -98,6 +99,16 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">{targetLanguage.nativeName}</p>
             </div>
           </div>
+          {!isLoading && !isSignedIn && (
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => navigate('/auth')}
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In
+            </Button>
+          )}
         </div>
       </aside>
 
@@ -110,9 +121,17 @@ export default function Dashboard() {
             </div>
             <span className="font-display font-bold">LingoLive</span>
           </div>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2">
-            {sidebarOpen ? <X /> : <Menu />}
-          </button>
+          <div className="flex items-center gap-2">
+            {!isLoading && !isSignedIn && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/auth')}>
+                <LogIn className="w-4 h-4 mr-1" />
+                Sign In
+              </Button>
+            )}
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2">
+              {sidebarOpen ? <X /> : <Menu />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Tabs */}
