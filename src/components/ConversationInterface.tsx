@@ -115,50 +115,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Show loading skeleton while checking auth
-  if (authLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
-        <div className="w-64 h-64 bg-muted rounded-2xl animate-pulse" />
-        <div className="space-y-3 w-full max-w-sm">
-          <div className="h-8 bg-muted rounded-lg animate-pulse" />
-          <div className="h-4 bg-muted rounded-lg animate-pulse w-3/4 mx-auto" />
-          <div className="h-4 bg-muted rounded-lg animate-pulse w-1/2 mx-auto" />
-        </div>
-        <div className="flex gap-4">
-          <div className="h-10 w-24 bg-muted rounded-lg animate-pulse" />
-          <div className="h-10 w-24 bg-muted rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
-  }
-
-  // Show login prompt if not authenticated
-  if (!isSignedIn) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
-        <div className="w-64 h-64">
-          <OwlCharacter isSpeaking={false} />
-        </div>
-        <h2 className="text-2xl font-display font-bold">Sign In to Start Learning</h2>
-        <p className="text-muted-foreground max-w-md">
-          You need to be signed in to have conversations with our AI language tutor and track your progress.
-        </p>
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Go Back
-          </Button>
-          <Button onClick={() => navigate('/auth')}>
-            <LogIn className="w-4 h-4 mr-2" />
-            Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Call AI for response
+  // Call AI for response - define before useEffect that uses it
   const getAIResponse = async (conversationHistory: { role: string; content: string }[]) => {
     try {
       const { data, error } = await supabase.functions.invoke('language-chat', {
@@ -185,9 +142,9 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     }
   };
 
-  // Send initial greeting
+  // Send initial greeting - MUST be before conditional returns
   useEffect(() => {
-    if (messages.length === 0) {
+    if (messages.length === 0 && isSignedIn && !authLoading) {
       const sendGreeting = async () => {
         setIsLoading(true);
         setIsSpeaking(true);
@@ -240,7 +197,50 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
 
       sendGreeting();
     }
-  }, []);
+  }, [isSignedIn, authLoading]);
+
+  // Show loading skeleton while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
+        <div className="w-64 h-64 bg-muted rounded-2xl animate-pulse" />
+        <div className="space-y-3 w-full max-w-sm">
+          <div className="h-8 bg-muted rounded-lg animate-pulse" />
+          <div className="h-4 bg-muted rounded-lg animate-pulse w-3/4 mx-auto" />
+          <div className="h-4 bg-muted rounded-lg animate-pulse w-1/2 mx-auto" />
+        </div>
+        <div className="flex gap-4">
+          <div className="h-10 w-24 bg-muted rounded-lg animate-pulse" />
+          <div className="h-10 w-24 bg-muted rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!isSignedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
+        <div className="w-64 h-64">
+          <OwlCharacter isSpeaking={false} />
+        </div>
+        <h2 className="text-2xl font-display font-bold">Sign In to Start Learning</h2>
+        <p className="text-muted-foreground max-w-md">
+          You need to be signed in to have conversations with our AI language tutor and track your progress.
+        </p>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Back
+          </Button>
+          <Button onClick={() => navigate('/auth')}>
+            <LogIn className="w-4 h-4 mr-2" />
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSend = async () => {
     const textToSend = inputText.trim();
