@@ -8,6 +8,7 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useVocabulary } from "@/hooks/useVocabulary";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { storyModes } from "@/data/storyModes";
 import { Message, WordInContext } from "@/types/learning";
 import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff, Volume2, VolumeX, Loader2 } from "lucide-react";
@@ -22,6 +23,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const { messages, addMessage, currentStoryMode, useMessage, progress, addXp, targetLanguage } = useLearningStore();
   const { addWord } = useVocabulary();
   const { user } = useAuth();
+  const { syncProgressToDatabase } = useProfile();
   const [inputText, setInputText] = useState("");
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -31,6 +33,18 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const { toast } = useToast();
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
+
+  // Sync progress when leaving the conversation
+  const handleBack = async () => {
+    if (user && messages.length > 0) {
+      await syncProgressToDatabase();
+      toast({
+        title: "Progress saved",
+        description: "Your XP and streak have been saved.",
+      });
+    }
+    onBack();
+  };
 
   // Save words from AI response to database
   const saveWordsToDatabase = async (words: any[]) => {
@@ -297,7 +311,7 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
       {/* Header */}
       <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
