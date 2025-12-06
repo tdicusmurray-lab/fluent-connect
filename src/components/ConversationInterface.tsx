@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "./ChatMessage";
 import { OwlCharacter } from "./OwlCharacter";
@@ -11,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { storyModes } from "@/data/storyModes";
 import { Message, WordInContext } from "@/types/learning";
-import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff, Volume2, VolumeX, Loader2, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,9 +21,10 @@ interface ConversationInterfaceProps {
 }
 
 export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
+  const navigate = useNavigate();
   const { messages, addMessage, currentStoryMode, useMessage, progress, addXp, targetLanguage } = useLearningStore();
   const { addWord } = useVocabulary();
-  const { user } = useAuth();
+  const { user, isSignedIn, isLoading: authLoading } = useAuth();
   const { syncProgressToDatabase } = useProfile();
   const [inputText, setInputText] = useState("");
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -33,6 +35,31 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const { toast } = useToast();
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
+
+  // Show login prompt if not authenticated
+  if (!authLoading && !isSignedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
+        <div className="w-64 h-64">
+          <OwlCharacter isSpeaking={false} />
+        </div>
+        <h2 className="text-2xl font-display font-bold">Sign In to Start Learning</h2>
+        <p className="text-muted-foreground max-w-md">
+          You need to be signed in to have conversations with our AI language tutor and track your progress.
+        </p>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Back
+          </Button>
+          <Button onClick={() => navigate('/auth')}>
+            <LogIn className="w-4 h-4 mr-2" />
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Sync progress when leaving the conversation
   const handleBack = async () => {
