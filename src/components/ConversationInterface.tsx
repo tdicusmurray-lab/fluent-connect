@@ -6,6 +6,8 @@ import { VoiceVisualizer } from "./VoiceVisualizer";
 import { useLearningStore } from "@/stores/learningStore";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { useVocabulary } from "@/hooks/useVocabulary";
+import { useAuth } from "@/hooks/useAuth";
 import { storyModes } from "@/data/storyModes";
 import { Message, WordInContext } from "@/types/learning";
 import { Mic, MicOff, Send, ArrowLeft, Video, VideoOff, Volume2, VolumeX, Loader2 } from "lucide-react";
@@ -18,6 +20,8 @@ interface ConversationInterfaceProps {
 
 export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const { messages, addMessage, currentStoryMode, useMessage, progress, addXp, targetLanguage } = useLearningStore();
+  const { addWord } = useVocabulary();
+  const { user } = useAuth();
   const [inputText, setInputText] = useState("");
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -27,6 +31,22 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const { toast } = useToast();
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
+
+  // Save words from AI response to database
+  const saveWordsToDatabase = async (words: any[]) => {
+    if (!user || !words.length) return;
+    
+    for (const w of words) {
+      if (w.isNew && w.word && w.translation) {
+        await addWord({
+          word: w.word,
+          translation: w.translation,
+          pronunciation: w.pronunciation,
+          partOfSpeech: w.partOfSpeech,
+        });
+      }
+    }
+  };
 
   // Speech recognition hook
   const {
@@ -126,6 +146,9 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
             isNew: w.isNew ?? true,
           }));
 
+          // Save new words to database
+          saveWordsToDatabase(response.words || []);
+
           addMessage({
             id: Date.now().toString(),
             role: 'assistant',
@@ -208,6 +231,9 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
         isKnown: false,
         isNew: w.isNew ?? true,
       }));
+
+      // Save new words to database
+      saveWordsToDatabase(response.words || []);
 
       addMessage({
         id: (Date.now() + 1).toString(),
