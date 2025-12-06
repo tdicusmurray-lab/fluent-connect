@@ -34,6 +34,30 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Speech recognition hook - MUST be called before any conditional returns
+  const {
+    isListening,
+    isSupported: speechRecognitionSupported,
+    error: speechError,
+    transcript,
+    interimTranscript,
+    toggleListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition('en-US');
+
+  // Speech synthesis hook - MUST be called before any conditional returns
+  const {
+    speak,
+    stop: stopSpeaking,
+    isSpeaking: isSynthesizing,
+    isSupported: speechSynthesisSupported,
+  } = useSpeechSynthesis({
+    lang: targetLanguage?.code || 'es',
+    onStart: () => setIsSpeaking(true),
+    onEnd: () => setIsSpeaking(false),
+  });
+
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
 
   // Show loading skeleton while checking auth
@@ -106,30 +130,6 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
       }
     }
   };
-
-  // Speech recognition hook
-  const {
-    isListening,
-    isSupported: speechRecognitionSupported,
-    error: speechError,
-    transcript,
-    interimTranscript,
-    toggleListening,
-    stopListening,
-    resetTranscript,
-  } = useSpeechRecognition('en-US');
-
-  // Speech synthesis hook
-  const {
-    speak,
-    stop: stopSpeaking,
-    isSpeaking: isSynthesizing,
-    isSupported: speechSynthesisSupported,
-  } = useSpeechSynthesis({
-    lang: targetLanguage?.code || 'es',
-    onStart: () => setIsSpeaking(true),
-    onEnd: () => setIsSpeaking(false),
-  });
 
   // Update input when transcript changes
   useEffect(() => {
