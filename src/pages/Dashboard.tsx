@@ -15,6 +15,7 @@ import { GreetingHeader } from "@/components/GreetingHeader";
 import { WeeklyProgressReport } from "@/components/WeeklyProgressReport";
 import { WordOfTheDay } from "@/components/WordOfTheDay";
 import { LearningTips } from "@/components/LearningTips";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLearningStore } from "@/stores/learningStore";
 import { storyModes } from "@/data/storyModes";
 import { useNavigate } from "react-router-dom";
@@ -109,13 +110,7 @@ export default function Dashboard() {
         </nav>
 
         <div className="p-4 border-t border-border space-y-3">
-          <div className="flex items-center gap-3 px-4 py-2">
-            <span className="text-3xl">{targetLanguage.flag}</span>
-            <div>
-              <p className="font-bold text-sm">{targetLanguage.name}</p>
-              <p className="text-xs text-muted-foreground">{targetLanguage.nativeName}</p>
-            </div>
-          </div>
+          <LanguageSwitcher />
           {!isLoading && !isSignedIn && (
             <Button 
               variant="outline" 
@@ -139,6 +134,7 @@ export default function Dashboard() {
             <span className="font-display font-bold">LingoLive</span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             {!isLoading && !isSignedIn && (
               <Button variant="outline" size="sm" onClick={() => navigate('/auth')}>
                 <LogIn className="w-4 h-4 mr-1" />
