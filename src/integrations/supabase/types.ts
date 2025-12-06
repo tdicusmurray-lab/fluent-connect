@@ -14,7 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_premium: boolean | null
+          last_practice_date: string | null
+          messages_remaining: number | null
+          native_language: string | null
+          streak: number | null
+          target_language: string | null
+          updated_at: string | null
+          xp: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          is_premium?: boolean | null
+          last_practice_date?: string | null
+          messages_remaining?: number | null
+          native_language?: string | null
+          streak?: number | null
+          target_language?: string | null
+          updated_at?: string | null
+          xp?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_premium?: boolean | null
+          last_practice_date?: string | null
+          messages_remaining?: number | null
+          native_language?: string | null
+          streak?: number | null
+          target_language?: string | null
+          updated_at?: string | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
+      vocabulary: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_practiced: string | null
+          mastery_level: number | null
+          part_of_speech: string | null
+          pronunciation: string | null
+          times_correct: number | null
+          times_seen: number | null
+          translation: string
+          user_id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_practiced?: string | null
+          mastery_level?: number | null
+          part_of_speech?: string | null
+          pronunciation?: string | null
+          times_correct?: number | null
+          times_seen?: number | null
+          translation: string
+          user_id: string
+          word: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_practiced?: string | null
+          mastery_level?: number | null
+          part_of_speech?: string | null
+          pronunciation?: string | null
+          times_correct?: number | null
+          times_seen?: number | null
+          translation?: string
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
