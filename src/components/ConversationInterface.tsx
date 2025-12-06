@@ -59,6 +59,61 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
   });
 
   const currentStory = storyModes.find(s => s.id === currentStoryMode);
+  const messagesRemaining = progress.messagesLimit - progress.messagesUsed;
+  const displayText = inputText || (isListening ? interimTranscript : '');
+
+  // Sync progress when leaving the conversation
+  const handleBack = async () => {
+    if (user && messages.length > 0) {
+      await syncProgressToDatabase();
+      toast({
+        title: "Progress saved",
+        description: "Your XP and streak have been saved.",
+      });
+    }
+    onBack();
+  };
+
+  // Save words from AI response to database
+  const saveWordsToDatabase = async (words: any[]) => {
+    if (!user || !words.length) return;
+    
+    for (const w of words) {
+      if (w.isNew && w.word && w.translation) {
+        await addWord({
+          word: w.word,
+          translation: w.translation,
+          pronunciation: w.pronunciation,
+          partOfSpeech: w.partOfSpeech,
+        });
+      }
+    }
+  };
+
+  // Update input when transcript changes - MUST be before conditional returns
+  useEffect(() => {
+    if (transcript) {
+      setInputText(transcript);
+    }
+  }, [transcript]);
+
+  // Show errors - MUST be before conditional returns
+  useEffect(() => {
+    if (speechError) {
+      toast({
+        title: "Microphone Error",
+        description: speechError === 'not-allowed' 
+          ? "Microphone access denied. Please allow microphone permissions." 
+          : `Speech recognition error: ${speechError}`,
+        variant: "destructive",
+      });
+    }
+  }, [speechError, toast]);
+
+  // Scroll to bottom - MUST be before conditional returns
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Show loading skeleton while checking auth
   if (authLoading) {
@@ -102,58 +157,6 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
       </div>
     );
   }
-
-  // Sync progress when leaving the conversation
-  const handleBack = async () => {
-    if (user && messages.length > 0) {
-      await syncProgressToDatabase();
-      toast({
-        title: "Progress saved",
-        description: "Your XP and streak have been saved.",
-      });
-    }
-    onBack();
-  };
-
-  // Save words from AI response to database
-  const saveWordsToDatabase = async (words: any[]) => {
-    if (!user || !words.length) return;
-    
-    for (const w of words) {
-      if (w.isNew && w.word && w.translation) {
-        await addWord({
-          word: w.word,
-          translation: w.translation,
-          pronunciation: w.pronunciation,
-          partOfSpeech: w.partOfSpeech,
-        });
-      }
-    }
-  };
-
-  // Update input when transcript changes
-  useEffect(() => {
-    if (transcript) {
-      setInputText(transcript);
-    }
-  }, [transcript]);
-
-  // Show errors
-  useEffect(() => {
-    if (speechError) {
-      toast({
-        title: "Microphone Error",
-        description: speechError === 'not-allowed' 
-          ? "Microphone access denied. Please allow microphone permissions." 
-          : `Speech recognition error: ${speechError}`,
-        variant: "destructive",
-      });
-    }
-  }, [speechError, toast]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   // Call AI for response
   const getAIResponse = async (conversationHistory: { role: string; content: string }[]) => {
@@ -347,9 +350,6 @@ export function ConversationInterface({ onBack }: ConversationInterfaceProps) {
     }
     setAutoSpeak(!autoSpeak);
   };
-
-  const messagesRemaining = progress.messagesLimit - progress.messagesUsed;
-  const displayText = inputText || (isListening ? interimTranscript : '');
 
   return (
     <div className="h-screen flex flex-col bg-background">
