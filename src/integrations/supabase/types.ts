@@ -14,9 +14,149 @@ export type Database = {
   }
   public: {
     Tables: {
+      guild_members: {
+        Row: {
+          guild_id: string
+          id: string
+          joined_at: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          guild_id: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          guild_id?: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_members_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guilds: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          member_count: number | null
+          name: string
+          total_xp: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          member_count?: number | null
+          name: string
+          total_xp?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          member_count?: number | null
+          name?: string
+          total_xp?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      leaderboard_weekly: {
+        Row: {
+          id: string
+          rank: number | null
+          streak: number | null
+          updated_at: string
+          user_id: string
+          username: string
+          week_start: string
+          words_this_week: number | null
+          xp_this_week: number | null
+        }
+        Insert: {
+          id?: string
+          rank?: number | null
+          streak?: number | null
+          updated_at?: string
+          user_id: string
+          username: string
+          week_start: string
+          words_this_week?: number | null
+          xp_this_week?: number | null
+        }
+        Update: {
+          id?: string
+          rank?: number | null
+          streak?: number | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+          week_start?: string
+          words_this_week?: number | null
+          xp_this_week?: number | null
+        }
+        Relationships: []
+      }
+      login_rewards: {
+        Row: {
+          bonus_multiplier: number | null
+          created_at: string
+          day_number: number
+          id: string
+          login_date: string
+          reward_claimed: boolean | null
+          user_id: string
+          xp_reward: number | null
+        }
+        Insert: {
+          bonus_multiplier?: number | null
+          created_at?: string
+          day_number?: number
+          id?: string
+          login_date?: string
+          reward_claimed?: boolean | null
+          user_id: string
+          xp_reward?: number | null
+        }
+        Update: {
+          bonus_multiplier?: number | null
+          created_at?: string
+          day_number?: number
+          id?: string
+          login_date?: string
+          reward_claimed?: boolean | null
+          user_id?: string
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
+          display_name: string | null
+          guild_id: string | null
           id: string
           is_premium: boolean | null
           last_practice_date: string | null
@@ -24,11 +164,17 @@ export type Database = {
           native_language: string | null
           streak: number | null
           target_language: string | null
+          total_conversations: number | null
+          total_words_learned: number | null
           updated_at: string | null
+          username: string | null
           xp: number | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
+          display_name?: string | null
+          guild_id?: string | null
           id: string
           is_premium?: boolean | null
           last_practice_date?: string | null
@@ -36,11 +182,17 @@ export type Database = {
           native_language?: string | null
           streak?: number | null
           target_language?: string | null
+          total_conversations?: number | null
+          total_words_learned?: number | null
           updated_at?: string | null
+          username?: string | null
           xp?: number | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
+          display_name?: string | null
+          guild_id?: string | null
           id?: string
           is_premium?: boolean | null
           last_practice_date?: string | null
@@ -48,10 +200,21 @@ export type Database = {
           native_language?: string | null
           streak?: number | null
           target_language?: string | null
+          total_conversations?: number | null
+          total_words_learned?: number | null
           updated_at?: string | null
+          username?: string | null
           xp?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vocabulary: {
         Row: {

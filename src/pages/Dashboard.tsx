@@ -16,6 +16,10 @@ import { WeeklyProgressReport } from "@/components/WeeklyProgressReport";
 import { WordOfTheDay } from "@/components/WordOfTheDay";
 import { LearningTips } from "@/components/LearningTips";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Leaderboard } from "@/components/Leaderboard";
+import { GuildPanel } from "@/components/GuildPanel";
+import { DailyLoginReward, DailyLoginButton } from "@/components/DailyLoginReward";
+import { XPMultiplier } from "@/components/XPMultiplier";
 import { useLearningStore } from "@/stores/learningStore";
 import { storyModes } from "@/data/storyModes";
 import { useNavigate } from "react-router-dom";
@@ -31,10 +35,11 @@ import {
   X,
   LogIn,
   Brain,
-  BarChart3
+  BarChart3,
+  Trophy
 } from "lucide-react";
 
-type Tab = 'learn' | 'stories' | 'vocabulary' | 'pathway' | 'premium';
+type Tab = 'learn' | 'stories' | 'vocabulary' | 'pathway' | 'social' | 'premium';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -74,12 +79,14 @@ export default function Dashboard() {
     { id: 'stories' as Tab, icon: BookOpen, label: 'Stories' },
     { id: 'vocabulary' as Tab, icon: Globe, label: 'Words' },
     { id: 'pathway' as Tab, icon: Map, label: 'Path' },
+    { id: 'social' as Tab, icon: Trophy, label: 'Social' },
     { id: 'premium' as Tab, icon: Crown, label: 'Premium' },
   ];
 
   return (
     <>
     <StreakCelebration />
+    <DailyLoginReward />
     <div className="min-h-screen bg-background flex">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col">
@@ -110,6 +117,7 @@ export default function Dashboard() {
         </nav>
 
         <div className="p-4 border-t border-border space-y-3">
+          <DailyLoginButton />
           <LanguageSwitcher />
           {!isLoading && !isSignedIn && (
             <Button 
@@ -134,6 +142,7 @@ export default function Dashboard() {
             <span className="font-display font-bold">LingoLive</span>
           </div>
           <div className="flex items-center gap-2">
+            <DailyLoginButton />
             <LanguageSwitcher />
             {!isLoading && !isSignedIn && (
               <Button variant="outline" size="sm" onClick={() => navigate('/auth')}>
@@ -221,6 +230,7 @@ export default function Dashboard() {
 
               <div className="space-y-6">
                 <ProgressCard />
+                <XPMultiplier streakDays={progress.streak} />
                 <WordOfTheDay />
                 <AchievementsPanel />
               </div>
@@ -272,6 +282,22 @@ export default function Dashboard() {
               
               <div className="bg-card rounded-2xl p-6 shadow-card">
                 <LearningPathway />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'social' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="font-display text-2xl font-bold mb-2">Social Hub</h2>
+                <p className="text-muted-foreground">
+                  Compete with other learners and join guilds for team challenges.
+                </p>
+              </div>
+              
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Leaderboard />
+                <GuildPanel />
               </div>
             </div>
           )}
